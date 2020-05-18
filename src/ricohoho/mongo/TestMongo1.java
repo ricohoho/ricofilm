@@ -14,7 +14,7 @@ import com.mongodb.MongoException;
  * Java + MongoDB Hello world Example
  *
  */
-public class TestMOngo {
+public class TestMongo1 {
   public static void main(String[] args) {
 
     try {

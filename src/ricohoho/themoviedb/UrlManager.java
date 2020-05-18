@@ -9,6 +9,16 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.net.URLConnection;
+
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.simple.JSONObject;
+
+
 
 public class UrlManager {
 
@@ -60,7 +70,34 @@ public class UrlManager {
 		return sReturn;
 	}
 	
-	
+	/* Post JSON to REST !!
+	 *
+	 */
+	public static void sendJson(String url, JSONObject json ) {
+
+		
+		HttpClient httpClient = new DefaultHttpClient();
+
+
+		try {
+			System.out.println("sendJson : debut");
+		    HttpPost request = new HttpPost(url);
+		    //StringEntity params =new StringEntity("details={\"name\":\"myname\",\"age\":\"20\"} ");
+		    StringEntity params = new StringEntity(json.toString());
+		    request.addHeader("content-type", "application/json");
+		    request.addHeader("Accept","application/json");
+		    request.setEntity(params);
+		    HttpResponse response = httpClient.execute(request);
+		    System.out.println("sendJson : fin");
+		    // handle response here...
+		}catch (Exception ex) {
+		    // handle exception here
+			System.out.println("Exception:"+ex);
+		} finally {
+		    httpClient.getConnectionManager().shutdown();
+		}
+		
+	}
 
 	/**
 	 * 
