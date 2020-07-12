@@ -175,6 +175,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 	void  traiteDossierFilm( String serveurName, String pathFilm ,boolean addDb,boolean downloadImagePoster	 ) {
 		
 		List<Fichier> listeFichier=null;
+		List<String> listesSsDossier=null;
 		LogText logText = new LogText(pathFilm,"log.txt");
 		MongoManager mongoManager=null;
 		
@@ -184,7 +185,14 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		
 		//1]liste des fichiers de film
 		System.out.println("1]========================== Parse dossier ==========================");
-		listeFichier=parseDossier(pathFilm);
+		//listeFichier=parseDossier(pathFilm);
+		
+		FileMAnager fileMAnager = new FileMAnager();
+		fileMAnager.initFilm(pathFilm);		
+		listeFichier= fileMAnager.listeFichiersFilm;
+		listesSsDossier= fileMAnager.listeSsDossier;
+		
+		
 		
 
 		//2] Recherche du film sur TheMovieDb
@@ -382,6 +390,13 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 	            	logText.writeToFile("===>KO" + "\t" + nomFichier+"\t!!!!!"+ nomFilm);	
 		        }
 		 }		
+		 
+		 
+		 //Gestion des Ss Dossier		 
+		 for(int i=0; i<listesSsDossier.size(); i++) {
+			 System.out.println("traiteDossierFilm Appel reccurssif : "+listesSsDossier.get(i));
+			 traiteDossierFilm(  serveurName,  listesSsDossier.get(i) ,addDb,downloadImagePoster);  
+		 }
 		
 	}
 	

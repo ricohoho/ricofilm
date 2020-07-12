@@ -17,6 +17,7 @@ public class FileMAnager {
 	}
 
 	List<Fichier> listeFichiersFilm = new ArrayList<Fichier>();
+	List<String> listeSsDossier = new ArrayList<String>();
 	
 	/**
 	 * 
@@ -29,39 +30,46 @@ public class FileMAnager {
 		String filtre = "(.)*.(avi|mkv|mp4)";
 		try {
 			Pattern p = Pattern.compile(filtre); 
-			String [] s = new File(path).list(); 
+			//String [] s = new File(path).list(); 
+			File [] s = new File(path).listFiles();
 			//System.out.println("s.length="+s.length);
 			
 			 
 			for (int i=0; i<s.length;i++) {
 				
-				Matcher m = p.matcher(s[i]);
-				//System.out.println("matcher");
-				if ( m.matches()) { 
-					//System.out.println("  ==> Match");
-					System.out.println("film="+s[i]);
-					
-					File file =new File(path+s[i]);
-					double bytes=0;
-					Date dateFichier=null;
-					if(file.exists()){
-						bytes = file.length();
-						
-						long fileTime;
-						
-						try {
-							 fileTime = file.lastModified();
-							 dateFichier = new Date(fileTime);
-						} catch (Exception e) {
-						    System.err.println("Cannot get the last modified time - " + e);
-						}
-					}				
-					
+				if (s[i].isFile()) {
 				
+				
+					Matcher m = p.matcher(s[i].getName());
+					//System.out.println("matcher");
+					if ( m.matches()) { 
+						//System.out.println("  ==> Match");
+						System.out.println("film="+s[i]);
+						
+						//File file =new File(path+s[i]);
+						double bytes=0;
+						Date dateFichier=null;
+						if(s[i].exists()){
+							bytes = s[i].length();
+							
+							long fileTime;
+							
+							try {
+								 fileTime = s[i].lastModified();
+								 dateFichier = new Date(fileTime);
+							} catch (Exception e) {
+							    System.err.println("Cannot get the last modified time - " + e);
+							}
+						}				
+						
 					
-					listeFichiers.add(new Fichier(path,s[i],bytes,dateFichier)); 
+						
+						listeFichiers.add(new Fichier(path,s[i].getName(),bytes,dateFichier)); 
+					} else {
+						//System.out.println("  ==> Not Match");
+					}
 				} else {
-					//System.out.println("  ==> Not Match");
+					listeSsDossier.add(s[i].getAbsolutePath());
 				}
 			}
 		}  catch (Exception pse) { 

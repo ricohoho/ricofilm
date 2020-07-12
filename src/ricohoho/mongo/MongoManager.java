@@ -316,24 +316,25 @@ public class MongoManager {
 		String paramName="";
 		String valeurName="";
 		
-
-		for (Document item : arrayItem) {
-			bParamCheck=true;
-			//System.out.println("fil file=[" + item.getString("file")+"]");
-			for (String paramName_Valeur : findItemParamName_findItemValeur) {						
-				paramName=paramName_Valeur.split("/")[0].trim();
-				valeurName=paramName_Valeur.split("/")[1].trim();
-				//System.out.println("paramName_Valeur1="+paramName_Valeur);
-				//System.out.println("paramName_Valeur=2["+valeurName.trim()+"]=["+item.getString(paramName)+"]");
-				//System.out.println("Check="+item.getString(paramName).equals(valeurName));
+		if (arrayItem != null) {
+			for (Document item : arrayItem) {
+				bParamCheck=true;
+				//System.out.println("fil file=[" + item.getString("file")+"]");
+				for (String paramName_Valeur : findItemParamName_findItemValeur) {						
+					paramName=paramName_Valeur.split("/")[0].trim();
+					valeurName=paramName_Valeur.split("/")[1].trim();
+					//System.out.println("paramName_Valeur1="+paramName_Valeur);
+					//System.out.println("paramName_Valeur=2["+valeurName.trim()+"]=["+item.getString(paramName)+"]");
+					//System.out.println("Check="+item.getString(paramName).equals(valeurName));
+					
+					bParamCheck= bParamCheck && item.getString(paramName).equals(valeurName);
+				}
 				
-				bParamCheck= bParamCheck && item.getString(paramName).equals(valeurName);
-			}
-			
-			//System.out.println("bParamCheck:"+bParamCheck); 
-			//On ajoute le fichier trouvé dans la liste d'ITEM
-			if (bParamCheck) {
-				arrayItemFiltered.add(item);
+				//System.out.println("bParamCheck:"+bParamCheck); 
+				//On ajoute le fichier trouvé dans la liste d'ITEM
+				if (bParamCheck) {
+					arrayItemFiltered.add(item);
+				}
 			}
 		}
 	

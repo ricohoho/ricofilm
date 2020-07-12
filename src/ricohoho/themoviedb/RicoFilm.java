@@ -1,7 +1,11 @@
 package ricohoho.themoviedb;
 
+import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.Properties;
+
+import ricohoho.tools.ReadPropertiesFile;
 
 public class RicoFilm {
 
@@ -13,23 +17,43 @@ public class RicoFilm {
 		//config.put("StrictHostKeyChecking", "no");
 		
 		
-		String pathFilm = null;
+		String pathFilm = "DEFAUT_PATH";
 		List<String> listeFilm=null;
 		boolean addDb=false;
 		boolean downloadImagePoster = false;
-		String serveurName ="POR80090940"; //NOS-RICO et DAVIC.MKDH.FR
-		//String serveurName ="NOS-RICO"; 
+		String serveurName="DEFAUT_SERVEUR_NAME";
+		
+		Properties prop=new Properties();
+		try {
+			prop = ReadPropertiesFile.readPropertiesFile();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		
 		TheMovieDb theMovieDb = new TheMovieDb();
-		if (args.length >0)
+		if (args.length >0) {
 			pathFilm = args[0];
+			serveurName=args[1];
+		} else {
 			
-		else {
-			//theMovieDb.pathFilm = "F:\\Film\\2017\\201710\\";
-			pathFilm = "C:\\tempo\\test\\";
 			addDb=true;
-			//theMovieDb.pathFilm = "\\\\nos-rico\\video\\Films\\2017\\01_02_03\\";
+			
+			
+			/*
+			//Config test 1
+			serveurName ="POR80090940"; //NOS-RICO et DAVIC.MKDH.FR
+			pathFilm = "C:\\tempo\\test\\";			
+						
+			// Config test 2
+			serveurName ="NOS-RICO";
+			pathFilm = "C:\\tempo\\nos-rico-test\\";
 			//pathFilm = "\\\\NOS-RICO\\video\\Films\\2019\\201904\\";
+			*/
+			
+			serveurName=prop.getProperty("SERVEUR_NAME");
+			pathFilm=prop.getProperty("PATH_FILM");
+			
 		}
 		
 		downloadImagePoster=true;
