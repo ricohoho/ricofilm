@@ -5,6 +5,11 @@ import java.util.List;
 
 public class TheMovieDbTest {
 
+	
+	static String dbMongoHost="localhost";
+	static int dbMongoPort=27017;
+	static String dbName="ricofilm";
+	
 	public static void main(String[] args) {
 		//traiterDossierSupprimeFilmDBFichierAbsent();
 		traiterDossierFilm();
@@ -12,7 +17,7 @@ public class TheMovieDbTest {
 	}
 
 	static void traiterDossierSupprimeFilmDBFichierAbsent() {
-		TheMovieDb theMovieDb = new TheMovieDb();
+		TheMovieDb theMovieDb = new TheMovieDb(dbMongoHost,dbMongoPort,dbName);
 		theMovieDb.traiterDossierSupprimeFilmDBFichierAbsent("POR80090940", "C:\\tempo\\test\\", true);
 	}
 	
@@ -28,8 +33,8 @@ public class TheMovieDbTest {
 		//String pathFilm = "\\\\nos-rico\\video\\Films\\2017\\01_02_03\\";
 		//String pathFilm = "\\\\NOS-RICO\\video\\Films\\2019\\201904\\";			
 		
-		TheMovieDb theMovieDb = new TheMovieDb();
-		theMovieDb.traiteDossierFilm(serveurName,pathFilm, addDb, downloadImagePoster);
+		TheMovieDb theMovieDb = new TheMovieDb(dbMongoHost,dbMongoPort,dbName);
+		theMovieDb.traiteDossierFilm(serveurName,pathFilm, addDb, downloadImagePoster,1);
 	}
 	
 	

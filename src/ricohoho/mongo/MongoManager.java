@@ -41,10 +41,11 @@ public class MongoManager {
 	DB db = null;
 	MongoDatabase database = null;
 	
-	public MongoManager(String dbMongoName) {
+	public MongoManager(String dbMongoHost,int dbMongoPort,String dbMongoName) {
 		this.dbMongoName=dbMongoName;
 		//this.mongo = new MongoClient("192.168.1.18", 27017);
-		this.mongo = new MongoClient("127.0.0.1", 27017);
+		//this.mongo = new MongoClient("127.0.0.1", 27017);
+		this.mongo = new MongoClient(dbMongoHost, dbMongoPort);
 		this.db = mongo.getDB(dbMongoName);			
 		MongoClient mongoClient = new MongoClient();
 		this.database = mongoClient.getDatabase(dbMongoName);

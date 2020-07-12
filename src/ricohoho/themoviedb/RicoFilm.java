@@ -22,6 +22,10 @@ public class RicoFilm {
 		boolean addDb=false;
 		boolean downloadImagePoster = false;
 		String serveurName="DEFAUT_SERVEUR_NAME";
+		int path_FILM_NIV_SSDOSSIER=0;
+		String dbMongoHost="";
+		int dbMongoPort=0;
+		String dbMongoName="";
 		
 		Properties prop=new Properties();
 		try {
@@ -31,10 +35,17 @@ public class RicoFilm {
 			e.printStackTrace();
 		}
 		
-		TheMovieDb theMovieDb = new TheMovieDb();
+		
+		dbMongoHost=prop.getProperty("MONGODB_HOST");
+		dbMongoPort	=Integer.parseInt( prop.getProperty("MONGODB_PORT"));
+		dbMongoName	=prop.getProperty("MONGODB_NAME");		
+		
+		
+		TheMovieDb theMovieDb = new TheMovieDb(dbMongoHost,dbMongoPort,dbMongoName);
 		if (args.length >0) {
 			pathFilm = args[0];
 			serveurName=args[1];
+			path_FILM_NIV_SSDOSSIER=Integer.parseInt(args[2]);
 		} else {
 			
 			addDb=true;
@@ -53,6 +64,7 @@ public class RicoFilm {
 			
 			serveurName=prop.getProperty("SERVEUR_NAME");
 			pathFilm=prop.getProperty("PATH_FILM");
+			path_FILM_NIV_SSDOSSIER=Integer.parseInt(prop.getProperty("PATH_FILM_NIV_SSDOSSIER"));
 			
 		}
 		
@@ -62,7 +74,7 @@ public class RicoFilm {
 		LogText logText = new LogText(pathFilm,"log.txt");
 		logText.writeToFile("----------------------"+"\t"+new Date().toString()+"\t");
 		
-		theMovieDb.traiteDossierFilm(serveurName,pathFilm, addDb, downloadImagePoster);
+		theMovieDb.traiteDossierFilm(serveurName,pathFilm, addDb, downloadImagePoster,path_FILM_NIV_SSDOSSIER);
 		 
 		 System.out.println("Fin :-)");
 

@@ -42,7 +42,7 @@ public class UrlManager {
 				}
 
 				BufferedReader br = new BufferedReader(new InputStreamReader(
-					(conn.getInputStream())));
+					(conn.getInputStream()),"UTF8"));
 
 				String output;
 				System.out.println("Output from Server .... \n");

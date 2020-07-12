@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,14 +22,11 @@ import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
 import org.bson.Document;
-import org.bson.codecs.Codec;
-import org.bson.codecs.DecoderContext;
 import org.bson.conversions.Bson;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.junit.experimental.theories.Theories;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -45,7 +43,21 @@ public class TheMovieDb {
 	String pathFilm = null;
 	List<String> listeFilm=null;
 	public boolean addDb=false;
+	String dbMongoHost="";
+	int dbMongoPort=0;
+	String dbMongoName="";
 
+	
+	/**
+	 * Constructor
+	 * @param dbMongoHost
+	 * @param dbMongoPort
+	 */
+	public TheMovieDb(String dbMongoHost,int dbMongoPort, String dbMongoName) {
+		this.dbMongoHost=dbMongoHost;
+		this.dbMongoPort=dbMongoPort;
+		this.dbMongoName=dbMongoName;
+	}
 	
 	
 	/**
@@ -75,11 +87,11 @@ public class TheMovieDb {
  */
 void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFilm ,boolean addDb) {
 	List<Fichier> listeFichier=null;
-	LogText logText = new LogText(pathFilm,"log.txt");
+	//LogText logText = new LogText(pathFilm,"log.txt");
 	MongoManager mongoManager=null;
 	
 	if (addDb==true) {
-    	mongoManager=new MongoManager("ricofilm");
+    	mongoManager=new MongoManager(dbMongoHost,dbMongoPort,dbMongoName);
     }
 	
 	
@@ -167,12 +179,12 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 	
 	
 	/**
-	 * Tratement d'un dosssier de Film
+	 * Traitement d'un dosssier de Film
 	 * @param pathFilm : Path du dossier contenat les fichier film
 	 * @param addDb : Ajout : true/false  dans la base
 	 * @param downloadImagePoster : Téléchargemebnt des images poster : True / False
 	 */
-	void  traiteDossierFilm( String serveurName, String pathFilm ,boolean addDb,boolean downloadImagePoster	 ) {
+	void  traiteDossierFilm( String serveurName, String pathFilm ,boolean addDb,boolean downloadImagePoster, int sousDossier	 ) {
 		
 		List<Fichier> listeFichier=null;
 		List<String> listesSsDossier=null;
@@ -180,7 +192,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		MongoManager mongoManager=null;
 		
 		if (addDb==true) {
-        	mongoManager=new MongoManager("ricofilm");
+        	mongoManager=new MongoManager(dbMongoHost,dbMongoPort,dbMongoName);
         }
 		
 		//1]liste des fichiers de film
@@ -392,10 +404,12 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		 }		
 		 
 		 
-		 //Gestion des Ss Dossier		 
-		 for(int i=0; i<listesSsDossier.size(); i++) {
-			 System.out.println("traiteDossierFilm Appel reccurssif : "+listesSsDossier.get(i));
-			 traiteDossierFilm(  serveurName,  listesSsDossier.get(i) ,addDb,downloadImagePoster);  
+		 //Gestion des Ss Dossier
+		 if (sousDossier>0) {
+			 for(int i=0; i<listesSsDossier.size(); i++) {
+				 System.out.println("traiteDossierFilm Appel reccurssif : "+listesSsDossier.get(i));
+				 traiteDossierFilm(  serveurName,  listesSsDossier.get(i) ,addDb,downloadImagePoster, sousDossier-1);  
+			 }
 		 }
 		
 	}
@@ -543,12 +557,8 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
         	
             for(int i=0; i<films.size(); i++){
                 JSONObject objFilm =(JSONObject)films.get(i);// films.getJSONObject(i);
-                //System.out.println("Film "+i);
-                long id = (Long)objFilm.get("id");
-                String original_title = (String)objFilm.get("original_title");
-                String title = (String)objFilm.get("title");
-                String poster_path=(String)objFilm.get("poster_path");
-                String   release_date= (String)objFilm.get("release_date");
+                //System.out.println("Film "+i);                
+                
                 //On ne prend que la premier
                 //if (i==0) {
                 	//imageRetrun=poster_path;                	
@@ -558,6 +568,11 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
                  	filmList.add(filmRico);
                 //}
                 /*
+                long id = (Long)objFilm.get("id");
+                String original_title = (String)objFilm.get("original_title");
+                String title = (String)objFilm.get("title");
+                String poster_path=(String)objFilm.get("poster_path");
+                String   release_date= (String)objFilm.get("release_date");
                 System.out.println("----- Film("+i+")");
                 System.out.println("--"+ id);
                 System.out.println("--"+original_title);
@@ -630,7 +645,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 	 */
 	 DBObject getFilmTheMovieDbDetail(long  filmId ) {
 		//String sURL="https://api.themoviedb.org/3/movie/603?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&append_to_response=credits,videos"
-		String sURL = "https://api.themoviedb.org/3/movie/"+filmId+"?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&append_to_response=credits,videos";
+		String sURL = "https://api.themoviedb.org/3/movie/"+filmId+"?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&language=FR&append_to_response=credits,videos";
 		System.out.println("sURL="+sURL);
 		String sReturn= UrlManager.getUrl( sURL);
 		System.out.println("sReturn="+sReturn);
@@ -638,6 +653,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 			
 		try {
 			
+			sReturn = new String( sReturn);
 			obj = (DBObject) JSON.parse(sReturn);
 						
 			
@@ -652,15 +668,16 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		}
 		return obj;
          
-	}
+	} 
 	 
 	/*
 	 * Recherche du Json du detail d'un film (identique à getFilmTheMovieDbDetail mais revoi un JSONObject
+	 * https://developers.themoviedb.org/3/movies/get-movie-details
 	 */
 	 JSONObject getFilmTheMovieDbDetailJson(long  filmId ) {
 			//String sURL="https://api.themoviedb.org/3/movie/603?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&append_to_response=credits,videos"
-			String sURL = "https://api.themoviedb.org/3/movie/"+filmId+"?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&append_to_response=credits,videos";
-			System.out.println("sURL="+sURL);
+			String sURL = "https://api.themoviedb.org/3/movie/"+filmId+"?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&language=FR&append_to_response=credits,videos";
+			System.out.println("sURL="+sURL); 
 			String sReturn= UrlManager.getUrl( sURL);
 			System.out.println("sReturn="+sReturn);
 			JSONObject objRequest=null;

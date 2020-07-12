@@ -19,13 +19,16 @@ import ricohoho.themoviedb.LogText;
 
 public class TestMongoManager {
 
+	static String dbMongoHost="localhost";
+	static int dbMongoPort	=27017;
+	static String dbMongoName	="ricofilm"		;
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 
 		MongoManager mongoManager=null;
        	//mongoManager=new MongoManager("test1");
-		mongoManager=new MongoManager("ricofilm");
+		mongoManager=new MongoManager(dbMongoHost,dbMongoPort,dbMongoName);
 		
        	select(mongoManager) ;
 		//add(mongoManager);
