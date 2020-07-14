@@ -8,8 +8,8 @@ public class ReadPropertiesFile {
 
 	 public static void main(String args[]) throws IOException {
 	      Properties prop = readPropertiesFile();
-	      System.out.println("SFTPHOST: "+ prop.getProperty("SFTPHOST"));
-	      System.out.println("SFTPPORT: "+ prop.getProperty("SFTPPORT"));
+	      //System.out.println("SFTPHOST: "+ prop.getProperty("SFTPHOST"));
+	      //System.out.println("SFTPPORT: "+ prop.getProperty("SFTPPORT"));
 	   }
 	 /**
 	  * 

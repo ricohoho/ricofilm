@@ -10,19 +10,27 @@ import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.types.ObjectId;
 import org.json.simple.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
 import com.mongodb.WriteResult;
+import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
+import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
+
+import ricohoho.themoviedb.RicoFilm;
+
 import com.mongodb.DBCursor;
 
 public class MongoManager {
@@ -35,19 +43,55 @@ public class MongoManager {
 	//findIterable = collection.find(eq("RICO_FICHIER.path", "C:\\tempo\\test\\"));
 
 	
-	MongoClient mongoClient = null;
-	String dbMongoName="";
-	MongoClient mongo =null;
-	DB db = null;
-	MongoDatabase database = null;
 	
+	//MongoClient mongo =null;
+	DB db = null;
+	//MongoClient mongoClient=null;
+	MongoDatabase database = null;
+	Logger logger=null;
+
+	/**
+	 * 
+	 * @param dbMongoHost
+	 * @param dbMongoPort
+	 * @param dbMongoName
+	 */
 	public MongoManager(String dbMongoHost,int dbMongoPort,String dbMongoName) {
-		this.dbMongoName=dbMongoName;
-		//this.mongo = new MongoClient("192.168.1.18", 27017);
-		//this.mongo = new MongoClient("127.0.0.1", 27017);
-		this.mongo = new MongoClient(dbMongoHost, dbMongoPort);
-		this.db = mongo.getDB(dbMongoName);			
-		MongoClient mongoClient = new MongoClient();
+		 logger = LoggerFactory.getLogger(MongoManager.class);
+		 MongoClient mongo = new MongoClient(dbMongoHost, dbMongoPort);
+		 this.db = mongo.getDB(dbMongoName);				
+		 MongoClient mongoClient = new MongoClient();
+		 this.database = mongoClient.getDatabase(dbMongoName);
+	}
+	
+	/**
+	 * 
+	 * @param dbMongoHost
+	 * @param dbMongoPort
+	 * @param dbMongoName
+	 * @param userName
+	 * @param password
+	 */
+	public MongoManager(String dbMongoHost,int dbMongoPort,String dbMongoName, String userName, String password) {		
+		 logger = LoggerFactory.getLogger(MongoManager.class);
+		//mongo = new MongoClient(dbMongoHost, dbMongoPort);
+		//this.db = mongo.getDB(dbMongoName);		
+	
+		
+		String userPassword="";
+		if (!userName.equals("")) {
+			userPassword=userName+":"+password+"@";
+		}		
+		String uriDbCnx = "mongodb://"+userPassword+dbMongoHost+":"+dbMongoPort+"/"+dbMongoName ;
+		logger.debug("uriDbCnx = "+uriDbCnx );
+		MongoClient mongoClient = new MongoClient(
+				new MongoClientURI(uriDbCnx)
+		);
+		//========================================
+		//Pour l'instant on utilise les deux objet
+		// a terme tout migrer vers this.database
+		//========================================		
+		this.db= mongoClient.getDB(dbMongoName);
 		this.database = mongoClient.getDatabase(dbMongoName);
 	}
 	
@@ -59,9 +103,9 @@ public class MongoManager {
 	 */
 	public void insertJSON(String collectionName,DBObject  _DBObject) {
 		 try {
-			 DBCollection table = this.db.getCollection(collectionName);
+			 DBCollection table =  this.db.getCollection(collectionName);
 			 table.insert(_DBObject);
-				System.out.println("Done");
+				logger.info("Insert Done");
 		    //} catch (UnknownHostException e) {
 			//e.printStackTrace();
 		 } catch (MongoException e) {
@@ -78,14 +122,34 @@ public class MongoManager {
 	 * @param fields
 	 * @return Nb de ligne qui match
 	 */
-	public int selectDB(String collectionName, BasicDBObject whereQuery ,BasicDBObject fields) {			  
+	public int selectDB_BSON(String collectionName, BasicDBObject whereQuery ,BasicDBObject fields) {
+		//ef modif db par database
+		    		    		    
+		    MongoCollection<Document> collection = database.getCollection(collectionName);		    
+		    FindIterable<Document> findIterable = collection.find(whereQuery);
+		    findIterable.projection(fields);
+		    MongoCursor<Document> cursorDatabase = findIterable.iterator();
+		    int i_j= 0;
+		    while (cursorDatabase.hasNext()) {
+		        logger.debug(cursorDatabase.next().toString());
+		        i_j++;
+		    }
+		  
+		    return i_j;
+	}
+	
+	//deprecated !!! DB
+	public int selectDB(String collectionName, BasicDBObject whereQuery ,BasicDBObject fields) {
+		//ef modif db par database
+		    		    		    		    
 		    DBCollection table = this.db.getCollection(collectionName);
 		    DBCursor cursor = table.find(whereQuery, fields);
 		    int i_i= 0;
 		    while (cursor.hasNext()) {
-		        System.out.println(cursor.next());
+		        logger.debug(cursor.next().toString());
 		        i_i++;
 		    }
+		    
 		    return i_i;
 	}
 	
@@ -97,10 +161,8 @@ public class MongoManager {
 	 */
 	public List<Document>  selectDBDoc(String collectionName, BasicDBObject whereQuery) {
 		List<Document> arrayItem = null; 		
-		MongoCollection<Document> collection = this.database.getCollection(collectionName);
-		
-		List<Document> documentsRico = (List<Document>) collection.find(whereQuery).into(new ArrayList<Document>());
-		
+		MongoCollection<Document> collection = this.database.getCollection(collectionName);		
+		List<Document> documentsRico = (List<Document>) collection.find(whereQuery).into(new ArrayList<Document>());		
 		return documentsRico;
 	}
 	
@@ -112,11 +174,24 @@ public class MongoManager {
 	 * @param updateObj
 	 */
 	public WriteResult updateDB(String collectionName,BasicDBObject query, BasicDBObject updateObj) {
-		DBCollection table = this.db.getCollection(collectionName);
+		DBCollection table = (DBCollection) this.db.getCollection(collectionName);
 		com.mongodb.WriteResult wr = table.update(query, updateObj);
+		logger.info("deleteDB() Resultat de l' update, nb de doc : "+wr.getN());
+		return wr;		
+	}
+	
+	/*
+	public WriteResult updateDB_BSON(String collectionName,BasicDBObject query, BasicDBObject updateObj) {
+		
+		MongoCollection<Document> collection = database.getCollection(collectionName);		    
+		filter = eq("name", "Sundar");
+		query = combine(set("age", 23), set("gender", "Male"),
+				currentDate("lastModified"));
+		UpdateResult result = collection.updateOne(filter, query);
 		System.out.println("deleteDB() Resultat de l' update, nb de doc : "+wr.getN());
 		return wr;		
 	}
+	*/
 	
 	/**
 	 * Delete de documents 
@@ -124,10 +199,10 @@ public class MongoManager {
 	 * @param query
 	 * @return
 	 */
-	public WriteResult deleteDB(String collectionName,BasicDBObject query) {
-		DBCollection table = this.db.getCollection(collectionName);
+	public WriteResult deleteDB(String collectionName,BasicDBObject query) {		
+		DBCollection table =  this.db.getCollection(collectionName);
 		com.mongodb.WriteResult wr = table.remove(query);
-		System.out.println("deleteDB() Resultat de la suppression, nb de doc : "+wr.getN());
+		logger.info("deleteDB() Resultat de la suppression, nb de doc : "+wr.getN());
 		return wr;		
 	}
 	
@@ -210,7 +285,7 @@ public class MongoManager {
 		 UpdateResult _UpdateResult = collection.updateOne(query,new BasicDBObject("$pull", new BasicDBObject(arrayName, obj1))
 				 
 		);		 
-		System.out.println("_UpdateResult="+_UpdateResult);
+		logger.info("_UpdateResult="+_UpdateResult);
 	}
 	
 	
@@ -232,7 +307,7 @@ public class MongoManager {
 		 UpdateResult _UpdateResult = collection.updateOne(query,new BasicDBObject("$pull", new BasicDBObject(arrayName, obj1))
 				 
 		);		 
-		System.out.println("_UpdateResult="+_UpdateResult);
+		logger.info("_UpdateResult="+_UpdateResult);
 	}
 	
 /**
@@ -279,21 +354,21 @@ public class MongoManager {
 	 */
 	public List<Document> arrayListITemFind(String collectionName,Bson filter, String ArrayName, String findItemParamName, String findItemValeur) {
 	    
-		System.out.println("arrayListITemFind Debut");
-		System.out.println("arrayListITemFind Filtrage sur document "+filter+" dans list :"+ArrayName+" :  "+findItemParamName +"="+findItemValeur);
+		logger.debug("arrayListITemFind Debut");
+		logger.debug("arrayListITemFind Filtrage sur document "+filter+" dans list :"+ArrayName+" :  "+findItemParamName +"="+findItemValeur);
 		List<Document> arrayItemFiltered = new ArrayList<Document>(); 
 		List<Document> arrayItem  = arrayListITem(collectionName,filter, ArrayName);
 		
 	    //obj1.put("value","X1");
 	    //obj1.put("onclick", "one");
 		for (Document item : arrayItem) {
-			System.out.println("arrayListITemFind : menu ("+findItemParamName+") = " + item.getString(findItemParamName));
+			logger.debug("arrayListITemFind : menu ("+findItemParamName+") = " + item.getString(findItemParamName));
 			if (item.getString(findItemParamName).equals(findItemValeur)) {
 				arrayItemFiltered.add(item);
 			}
 		}
 	
-		System.out.println("arrayListITemFind Fin");
+		logger.debug("arrayListITemFind Fin");
 		return arrayItemFiltered;
 		
 	}

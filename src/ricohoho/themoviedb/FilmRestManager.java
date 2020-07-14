@@ -13,7 +13,8 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -25,9 +26,12 @@ public class FilmRestManager {
 	
 	public String serveurHost="localhost";
 	public String serveurPort="3000";
+	Logger logger = null;
+	
 
 	
 	public FilmRestManager(String serveurHost,String serveurPort) {
+		logger = LoggerFactory.getLogger(RequestManager.class);		
 		this.serveurHost=serveurHost;
 		this.serveurPort=serveurPort;
 	}
@@ -41,12 +45,12 @@ public class FilmRestManager {
 		FilmRestManager _FilmRestManager= new FilmRestManager("localhost","3000");
 		
 		int nbCount =  _FilmRestManager.getFilmsCount(  p_name ) ;
-		System.out.println("Nb Film:"+nbCount);
+		_FilmRestManager.logger.info("Nb Film:"+nbCount);
 		
 		List<Film>  filmList = _FilmRestManager.getFilms( p_name ) ;
-		System.out.println("filmList size:"+filmList.size());
+		_FilmRestManager.logger.info("filmList size:"+filmList.size());
 		Film film = filmList.get(0);
-		System.out.println("title:"+film.getOriginal_title());
+		_FilmRestManager.logger.info("title:"+film.getOriginal_title());
 		/*
 		//2 : Envoi des fichiers sur le serveru davic (en SFTP)
 		traitement(requestList);
@@ -60,7 +64,7 @@ public class FilmRestManager {
 	 * @param json
 	 */
 	public void addFilm(JSONObject json ) {
-		System.out.println("addFilm Debut");
+		logger.info("addFilm Debut");
 		//json.put("someKey", "someValue");    
 
 		HttpClient client = new DefaultHttpClient();
@@ -80,9 +84,9 @@ public class FilmRestManager {
 		} catch (Exception ex) {
 		    // handle exception here
 			ex.printStackTrace();
-            System.out.println( "Cannot Estabilish Connection");
+            logger.error( "Cannot Estabilish Connection");
 		}
-		System.out.println("addFilm Fin");
+		logger.info("addFilm Fin");
 	}
 	
 	/**
@@ -95,10 +99,10 @@ public class FilmRestManager {
 	 */
 	public int getFilmsCount(String p_name ) {
 		String sURL = "http://"+this.serveurHost+":"+this.serveurPort+"/films/list?filmname="+p_name+"&infocount=O";
-		System.out.println("retour sURL :"+sURL);
+		logger.info("retour sURL :"+sURL);
 		int count=0;
 		String sReturn= UrlManager.getUrl( sURL);
-		System.out.println("retour http :"+sReturn);
+		logger.info("retour http :"+sReturn);
 		 JSONParser parser = new JSONParser();
 		 Object obj;
 		 try {			
@@ -106,11 +110,12 @@ public class FilmRestManager {
 			 JSONObject objRequest =(JSONObject)obj;
 			 count = Integer.parseInt(objRequest.get("count").toString());
 			 //String title = (String)objRequest.get("count");
-			 System.out.println("");
+			 logger.info("");
 			 
 		 } catch (ParseException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
+				logger.error("{}",e);
 		 }		
 		return count;
 	}
@@ -129,21 +134,17 @@ public class FilmRestManager {
 		List<Film> filmList= new ArrayList<Film>();
 
 		String sURL = "http://"+this.serveurHost+":"+this.serveurPort+"/films/list?filmname="+p_name;
-		System.out.println("retour sURL :"+sURL);
+		logger.info("retour sURL :"+sURL);
 		
 		String sReturn= UrlManager.getUrl( sURL);
-		System.out.println("retour http :"+sReturn);
+		logger.info("retour http :"+sReturn);
 		//JSONArray ja = new JSONArray();
 		
 		 JSONParser parser = new JSONParser();
 		 Object obj;
-		 try {
-			
-			obj = parser.parse(sReturn);
-			
-			
-			JSONArray films = (JSONArray) obj;
-			
+		 try {			
+			obj = parser.parse(sReturn);						
+			JSONArray films = (JSONArray) obj;			
             GsonBuilder gsonBuilder=  new GsonBuilder();
         	gsonBuilder.setDateFormat("yyyy-MM-dd");
         	Gson gson =gsonBuilder.create();
@@ -159,9 +160,9 @@ public class FilmRestManager {
             	film = gson.fromJson(a_jason_string, Film.class);
             	filmList.add(film);
 
-                System.out.println("----- Request("+i+")");
-                System.out.println("--"+ id);
-                System.out.println("--"+original_title);    
+            	logger.debug("----- Request("+i+")");
+            	logger.debug("--"+ id);
+            	logger.debug("--"+original_title);    
     
             }  
 
@@ -169,6 +170,7 @@ public class FilmRestManager {
 	         
 		} catch (ParseException e) {
 			e.printStackTrace();
+			logger.error("{}",e);
 		}
 		return filmList;
          

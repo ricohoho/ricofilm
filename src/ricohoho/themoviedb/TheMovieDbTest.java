@@ -9,6 +9,8 @@ public class TheMovieDbTest {
 	static String dbMongoHost="localhost";
 	static int dbMongoPort=27017;
 	static String dbName="ricofilm";
+	static String dbUSerName="";
+	static String dbPAssword="";
 	
 	public static void main(String[] args) {
 		//traiterDossierSupprimeFilmDBFichierAbsent();
@@ -17,11 +19,11 @@ public class TheMovieDbTest {
 	}
 
 	static void traiterDossierSupprimeFilmDBFichierAbsent() {
-		TheMovieDb theMovieDb = new TheMovieDb(dbMongoHost,dbMongoPort,dbName);
+		TheMovieDb theMovieDb = new TheMovieDb(dbMongoHost,dbMongoPort,dbName,dbUSerName,dbPAssword);
 		theMovieDb.traiterDossierSupprimeFilmDBFichierAbsent("POR80090940", "C:\\tempo\\test\\", true);
 	}
 	
-	static void traiterDossierFilm() {
+	static void traiterDossierFilm() { 
 		boolean addDb=false;
 		boolean downloadImagePoster = false;
 		String serveurName ="POR80090940"; //NOS-RICO et DAVIC.MKDH.FR
@@ -33,8 +35,9 @@ public class TheMovieDbTest {
 		//String pathFilm = "\\\\nos-rico\\video\\Films\\2017\\01_02_03\\";
 		//String pathFilm = "\\\\NOS-RICO\\video\\Films\\2019\\201904\\";			
 		
-		TheMovieDb theMovieDb = new TheMovieDb(dbMongoHost,dbMongoPort,dbName);
-		theMovieDb.traiteDossierFilm(serveurName,pathFilm, addDb, downloadImagePoster,1);
+		TheMovieDb theMovieDb = new TheMovieDb(dbMongoHost,dbMongoPort,dbName,dbUSerName,dbPAssword);
+		String memoRicoFIlm="BD";
+		theMovieDb.traiteDossierFilm(serveurName,pathFilm, memoRicoFIlm, downloadImagePoster,1);
 	}
 	
 	

@@ -12,6 +12,8 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -22,7 +24,7 @@ import ricohoho.tools.ReadPropertiesFile;
 public class RequestManager {
 
 	public static void main(String[] args) {
-		
+		 
 		Properties prop=new Properties();
 		try {
 			prop = ReadPropertiesFile.readPropertiesFile();
@@ -39,8 +41,7 @@ public class RequestManager {
 		List<Request>  requestList = getRequestFilm( serveurHost, serveurPort, p_status, p_serveur_name ) ;
 		
 		//2 : Envoi des fichiers sur le serveru davic (en SFTP)
-		traitement(requestList);
-		
+		traitement(requestList);		
 
 	}
 
@@ -55,14 +56,17 @@ public class RequestManager {
 	 */
 	static List<Request> getRequestFilm(String serveurHost,String serveurPort,String p_status,String p_serveur_name ) {
 
+		
+		Logger logger = LoggerFactory.getLogger(RequestManager.class);
+		logger.debug( "getRequestFilm : debut"); 
 		Request request = null;
 		List<Request> requestList= new ArrayList<Request>();
 
 		String sURL = "http://"+serveurHost+":"+serveurPort+"/request/list?status="+p_status+"&serveur_name="+p_serveur_name;
-		System.out.println("retour sURL :"+sURL);
+		logger.info("retour sURL :"+sURL);
 		
 		String sReturn= UrlManager.getUrl( sURL);
-		System.out.println("retour http :"+sReturn);
+		logger.info("retour http :"+sReturn);
 		//JSONArray ja = new JSONArray();
 		
 		 JSONParser parser = new JSONParser();
@@ -108,14 +112,14 @@ public class RequestManager {
                 	request = gson.fromJson(a_jason_string, Request.class);
                 	requestList.add(request);
 
-                System.out.println("----- Request("+i+")");
-                System.out.println("--"+ id);
-                System.out.println("--"+username);                
-                System.out.println("--"+serveur_name);
-                System.out.println("--"+path+"/"+request.path);
-                System.out.println("--"+file);
-                System.out.println("--"+status);
-                System.out.println("----- ");
+                	logger.info("----- Request("+i+")");
+                	logger.info("--"+ id);
+                	logger.info("--"+username);                
+                	logger.info("--"+serveur_name);
+                	logger.info("--"+path+"/"+request.path);
+                	logger.info("--"+file);
+                	logger.info("--"+status);
+                	logger.info("----- ");
                 
             }  
 
@@ -124,6 +128,7 @@ public class RequestManager {
 		} catch (ParseException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			logger.error("{}",e);
 		}
 	/*
 		if (filmList.size()>0)
@@ -140,6 +145,8 @@ public class RequestManager {
 	 * @param listRequest
 	 */
 	static void traitement(List<Request> listRequest) {
+		Logger logger = LoggerFactory.getLogger(RequestManager.class);
+		logger.debug( "traitement : debut"); 
 		Properties prop=new Properties();
 		try {
 			prop = ReadPropertiesFile.readPropertiesFile();
@@ -151,42 +158,39 @@ public class RequestManager {
 		
 		
 		//Pour chaque demande
-			//LAncer le traitement 
-			//1) sftp de PAth + Film (\\nos-rico\....\xxx.avi  ====> davic.mkdh.fr -> /home/ok/ressuscite/
-			String SFTPHOST = prop.getProperty("CENTRAL_SFTP_HOST");							//"davic.mkdh.fr";
-		    int SFTPPORT =  Integer.parseInt(prop.getProperty("CENTRAL_SFTP_PORT"));	//4322;
-		    String SFTPUSER =prop.getProperty("CENTRAL_SFTP_USER");						// "ricohoho";
-		    String SFTPPASS = prop.getProperty("CENTRAL_SFTP_SFTP_PASS");				// "serveur$linux";
-		    String SFTPWORKINGDIR =prop.getProperty("CENTRAL_SFTP_WORKINGDIR");			// "/home/ricohoho/test";
-		    String fileName="";
-		    
-			FileTools fileTools = new FileTools(SFTPHOST,SFTPPORT,SFTPUSER,SFTPPASS,SFTPWORKINGDIR);
-			
-		    for (Request request : listRequest) {		    	
-		    	fileName=request.getPath()+request.getFile();
-		    	fileName=fileName.replace("NOS-RICO", "192.168.0.16");
-		    	
-		    	
-		    	try {
-		    	System.out.println("Traitment du fichier :"+fileName);
-				//fileName = "D:\\tempo\\bog-fortalezza\\1.png";
-		    	fileTools.sftpAvecConservationDate(fileName);
-		    	
-		    	
+		//LAncer le traitement 
+		//1) sftp de PAth + Film (\\nos-rico\....\xxx.avi  ====> davic.mkdh.fr -> /home/ok/ressuscite/
+		String SFTPHOST = prop.getProperty("CENTRAL_SFTP_HOST");							//"davic.mkdh.fr";
+	    int SFTPPORT =  Integer.parseInt(prop.getProperty("CENTRAL_SFTP_PORT"));	//4322;
+	    String SFTPUSER =prop.getProperty("CENTRAL_SFTP_USER");						// "ricohoho";
+	    String SFTPPASS = prop.getProperty("CENTRAL_SFTP_SFTP_PASS");				// "serveur$linux";
+	    String SFTPWORKINGDIR =prop.getProperty("CENTRAL_SFTP_WORKINGDIR");			// "/home/ricohoho/test";
+	    String fileName="";
+	    
+		FileTools fileTools = new FileTools(SFTPHOST,SFTPPORT,SFTPUSER,SFTPPASS,SFTPWORKINGDIR);
+		
+	    for (Request request : listRequest) {		    	
+	    	fileName=request.getPath()+request.getFile();
+	    	fileName=fileName.replace("NOS-RICO", "192.168.0.16");
+	    	
+	    	
+	    	try {
+	    		logger.info("Traitment du fichier :"+fileName);
+	    		//	fileName = "D:\\tempo\\bog-fortalezza\\1.png";
+	    		fileTools.sftpAvecConservationDate(fileName);
+	    	
+	    	
 				//2) Update REQUEST.status='FAIT'
-		    	System.out.println("Mise a jour du status");
+	    		logger.info("Mise a jour du status");
 		    	String url="http://localhost:3000/request/edit";
 		    	request.setStatus("FAIT");
 		    	UrlManager.sendJson( url,request.getJson());
 		    	} catch (Exception ex ) {
-		    		System.out.println("Excepiotn tratement fichier :"+ex);
+		    		logger.error("Excepiotn tratement fichier :"+ex);
 		    	}
 		    }					
-		
-
-		    
-		
-		
-	}
+	    
+	
+		}
 	
 }

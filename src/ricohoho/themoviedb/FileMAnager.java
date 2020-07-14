@@ -10,6 +10,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class FileMAnager {
 	
 	FileMAnager() {
@@ -25,7 +28,9 @@ public class FileMAnager {
 	 * @return
 	 */
 	public List<Fichier> getPAthFile(String path) { 
-		System.out.println("Path="+path);
+		Logger logger = LoggerFactory.getLogger(FileMAnager.class);
+		logger.debug( "getPAthFile : debut"); 
+		logger.info("Path="+path);
 		List<Fichier> listeFichiers = new ArrayList<Fichier>();
 		String filtre = "(.)*.(avi|mkv|mp4)";
 		try {
@@ -44,7 +49,7 @@ public class FileMAnager {
 					//System.out.println("matcher");
 					if ( m.matches()) { 
 						//System.out.println("  ==> Match");
-						System.out.println("film="+s[i]);
+						logger.info("film="+s[i]);
 						
 						//File file =new File(path+s[i]);
 						double bytes=0;
@@ -73,7 +78,7 @@ public class FileMAnager {
 				}
 			}
 		}  catch (Exception pse) { 
-			System.out.println("Le dossier : "+ path+" n'existe pas!!");
+			logger.info("Le dossier : "+ path+" n'existe pas!!");
 			//pse.printStackTrace(); 		 
 		} 
 		//List<String> wordList = Arrays.asList(words);  

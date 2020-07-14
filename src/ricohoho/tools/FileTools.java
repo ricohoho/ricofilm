@@ -2,6 +2,8 @@ package ricohoho.tools;
 
 import com.jcraft.jsch.*;
 
+import ricohoho.themoviedb.RequestManager;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -15,6 +17,8 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
+import org.slf4j.LoggerFactory;
 public class FileTools {
 
 	//https://stackoverflow.com/questions/2405885/run-a-command-over-ssh-with-jsch
@@ -25,6 +29,8 @@ public class FileTools {
     String SFTPPASS = "password";
     String SFTPWORKINGDIR = "file/to/transfer";
     
+    org.slf4j.Logger logger = null;
+    
     /**
      * 
      * @param SFTPHOST
@@ -34,6 +40,7 @@ public class FileTools {
      * @param SFTPWORKINGDIR
      */
     public FileTools(String _SFTPHOST, int _SFTPPORT ,String _SFTPUSER ,String _SFTPPASS ,String _SFTPWORKINGDIR ) {
+    	logger = LoggerFactory.getLogger(FileTools.class);		
     	SFTPHOST = _SFTPHOST;
     	SFTPPORT =_SFTPPORT;
     	SFTPUSER =_SFTPUSER ;
@@ -65,6 +72,7 @@ public class FileTools {
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
+			fileTools.logger.error("{}",e);
 		}
 
 	}
@@ -77,7 +85,7 @@ public class FileTools {
 	public  void sftpAvecConservationDate (String fileName) throws Exception {
 		String nomFile="";
 		try  {
-			System.out.println("fileName="+fileName);
+			logger.info("fileName="+fileName);
 			
 			//1 recupperaion de la date local
 			File file = new File(fileName);
@@ -88,7 +96,7 @@ public class FileTools {
 			//System.out.println("creationTime: " + ft);	
 			Format formatter = new SimpleDateFormat("yyyyMMddHHmm");
 			String sDateFormat = formatter.format(dateFichier);
-			System.out.println("creationTime: " + sDateFormat);
+			logger.info("creationTime: " + sDateFormat);
 			
 			
 	
@@ -98,11 +106,11 @@ public class FileTools {
 			
 			//3 Modification de la date du fichier distant
 			String command=" touch -t "+sDateFormat+" "+SFTPWORKINGDIR+"/"+nomFile;
-			System.out.println("command="+command);
+			logger.info("command="+command);
 			this.execSSH(fileName, command);
 			
 		} catch (Exception  ex) {
-			System.out.println("sendAvecConservationDate Excepiton "+ex);
+			logger.error("sendAvecConservationDate Excepiton "+ex);
 			throw ex;
 		}
 	}
@@ -117,7 +125,7 @@ public class FileTools {
 	    Session session = null;
 	    Channel channel = null;
 	    ChannelSftp channelSftp = null;
-	    System.out.println("---- sftp  debut");
+	    logger.info("---- sftp  debut");
 
 	    try {
 	        JSch jsch = new JSch();
@@ -127,26 +135,25 @@ public class FileTools {
 	        config.put("StrictHostKeyChecking", "no");
 	        session.setConfig(config);
 	        session.connect();
-	        System.out.println("Host connected.");
+	        logger.info("Host connected.");
 	        channel = session.openChannel("sftp");
 	        channel.connect();
-	        System.out.println("sftp channel opened and connected.");
+	        logger.info("sftp channel opened and connected.");
 	        channelSftp = (ChannelSftp) channel;
 	        channelSftp.cd(SFTPWORKINGDIR);
 	        File f = new File(fileName);
-	        channelSftp.put(new FileInputStream(f), f.getName());
-	        //Log.info("File transfered successfully to host.");
-	        System.out.println("---- sftp  Fin");
+	        channelSftp.put(new FileInputStream(f), f.getName());	        
+	        logger.info("---- sftp  Fin");
 	    } catch (Exception ex) {
-	        System.out.println("Exception found while tranfer the response."+ex);
+	    	logger.error("Exception found while tranfer the response."+ex);
 	        throw ex;
 	    } finally {
 	        channelSftp.exit();
-	        System.out.println("sftp Channel exited.");
+	        logger.debug("sftp Channel exited.");
 	        channel.disconnect();
-	        System.out.println("Channel disconnected.");
+	        logger.debug("Channel disconnected.");
 	        session.disconnect();
-	        System.out.println("Host Session disconnected.");
+	        logger.debug("Host Session disconnected.");
 	    }
 	}   
 	
@@ -164,7 +171,7 @@ public class FileTools {
 	    Session session = null;
 	    Channel channel = null;
 	    ChannelSftp channelSftp = null;
-	    System.out.println("---- execSSH  debut");
+	    logger.info("---- execSSH  debut");
 
 	    try {
 	        JSch jsch = new JSch();
@@ -174,7 +181,7 @@ public class FileTools {
 	        config.put("StrictHostKeyChecking", "no");
 	        session.setConfig(config);
 	        session.connect();
-	        System.out.println("Host connected.");
+	        logger.info("Host connected.");
 	        
 	        
 	        
@@ -196,29 +203,29 @@ public class FileTools {
 	          while(in.available()>0){
 	            int i=in.read(tmp, 0, 1024);
 	            if(i<0)break;
-	            System.out.print(new String(tmp, 0, i));
+	            logger.debug(new String(tmp, 0, i));
 	          }
 	          if(channel.isClosed()){
 	            if(in.available()>0) continue; 
-	            System.out.println("exit-status: "+channel.getExitStatus());
+	            logger.debug("exit-status: "+channel.getExitStatus());
 	            break;
 	          }
 	          try{Thread.sleep(1000);}catch(Exception ee){}
 	        }
 	        //channel.disconnect();
 	        //session.disconnect();
-	        System.out.println("---- execSSH fin");
+	        logger.info("---- execSSH fin");
 	        
 	    } catch (Exception ex) {
-	        System.out.println("Exception found while tranfer the response."+ex);
+	        logger.error("Exception found while tranfer the response."+ex);
 	        throw ex;
 	    } finally {
 	        //channelSftp.exit();
-	        System.out.println("sftp Channel exited.");
+	        logger.debug("sftp Channel exited.");
 	        channel.disconnect();
-	        System.out.println("Channel disconnected.");
+	        logger.debug("Channel disconnected.");
 	        session.disconnect();
-	        System.out.println("Host Session disconnected.");
+	        logger.debug("Host Session disconnected.");
 	    }
 	}   
 	

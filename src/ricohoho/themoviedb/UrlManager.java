@@ -17,17 +17,22 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.simple.JSONObject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 
 public class UrlManager {
 
 	/**
-	 * AppelURL avec retour JSON
+	 * AppelURL avec retour JSON 
 	 * @param sURL
 	 * @return
 	 */
 	public static String getUrl(String sURL) {
+		Logger logger = LoggerFactory.getLogger(UrlManager.class);
+		logger.debug( "getUrl : debut"); 
+		logger.info( "getUrl : sURL:"+sURL);
 		String sReturn = "";						
 			  try {
 
@@ -45,28 +50,20 @@ public class UrlManager {
 					(conn.getInputStream()),"UTF8"));
 
 				String output;
-				System.out.println("Output from Server .... \n");
+				logger.info("Output from Server .... \n");
 				while ((output = br.readLine()) != null) {
 					//System.out.println(output);
 					sReturn=sReturn+output+"\n";
 				}
-
 				conn.disconnect();
-
 			  } catch (MalformedURLException e) {
-
 				e.printStackTrace();
-
+				logger.error("{}",e);
 			  } catch (IOException e) {
-
 				e.printStackTrace();
-
+				logger.error("{}",e);
 			  }
 
-			
-
-		
-		
 		return sReturn;
 	}
 	
@@ -75,12 +72,12 @@ public class UrlManager {
 	 */
 	public static void sendJson(String url, JSONObject json ) {
 
-		
+		Logger logger = LoggerFactory.getLogger(UrlManager.class);
+		logger.debug( "sendJson : debut"); 
 		HttpClient httpClient = new DefaultHttpClient();
 
 
-		try {
-			System.out.println("sendJson : debut");
+		try {			
 		    HttpPost request = new HttpPost(url);
 		    //StringEntity params =new StringEntity("details={\"name\":\"myname\",\"age\":\"20\"} ");
 		    StringEntity params = new StringEntity(json.toString());
@@ -88,15 +85,14 @@ public class UrlManager {
 		    request.addHeader("Accept","application/json");
 		    request.setEntity(params);
 		    HttpResponse response = httpClient.execute(request);
-		    System.out.println("sendJson : fin");
+		    logger.debug("sendJson : fin");
 		    // handle response here...
 		}catch (Exception ex) {
 		    // handle exception here
-			System.out.println("Exception:"+ex);
+			logger.error("Exception:"+ex);			
 		} finally {
 		    httpClient.getConnectionManager().shutdown();
-		}
-		
+		}		
 	}
 
 	/**
@@ -116,17 +112,16 @@ public class UrlManager {
 	    while ((length = is.read(b)) != -1) {
 	        os.write(b, 0, length);
 	    }
-
 	    is.close();
 	    os.close();
 	}
 	
 	public static void main(String[] args) {
+		Logger logger = LoggerFactory.getLogger(UrlManager.class);
+		logger.debug( "main : debut"); 
 		String sURL="https://www.google.fr";
 		String sReturn= getUrl( sURL);
-		System.out.println("------------------------------");
-		System.out.println(""+sReturn);
-	}
-	
-	
+		logger.info("------------------------------");
+		logger.info(""+sReturn);
+	}		
 }

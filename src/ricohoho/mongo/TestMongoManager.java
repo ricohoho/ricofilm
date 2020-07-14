@@ -19,16 +19,25 @@ import ricohoho.themoviedb.LogText;
 
 public class TestMongoManager {
 
-	static String dbMongoHost="localhost";
+	// Config local
+	//static String dbMongoHost="localhost";
+	//static String dbUSer ="";
+	//static String dbPAssword	=""	;
 	static int dbMongoPort	=27017;
 	static String dbMongoName	="ricofilm"		;
+	
+	
+	//config distante
+	static String dbMongoHost="davic.mkdh.fr";
+	static String dbUSer ="ricoAdmin";
+	static String dbPAssword	="rineka5993"		;
 	
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
 
 		MongoManager mongoManager=null;
        	//mongoManager=new MongoManager("test1");
-		mongoManager=new MongoManager(dbMongoHost,dbMongoPort,dbMongoName);
+		mongoManager=new MongoManager(dbMongoHost,dbMongoPort,dbMongoName,dbUSer,dbPAssword);
 		
        	select(mongoManager) ;
 		//add(mongoManager);
@@ -171,7 +180,7 @@ public class TestMongoManager {
 	    	query.put("id", "file2");
 	    	BasicDBObject newDocument = new BasicDBObject();
 	    	
-	    	 BasicDBObject fields = new BasicDBObject();  
+	    	BasicDBObject fields = new BasicDBObject();  
 	    	fields.put("id", 1);
    		    int i_nb_matchBD= mongoManager.selectDB("films", query, fields);
    		    System.out.println("i_nb_matchBD"+i_nb_matchBD);
