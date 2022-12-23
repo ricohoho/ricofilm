@@ -34,12 +34,43 @@
           </archive>
         </configuration>
       </plugin>
-      
-      
-       
-      
+
+
+
+        <plugin>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <groupId>org.apache.maven.plugins</groupId>
+            <executions>
+                <execution>
+                    <id>make-executable-jar-with-dependencies</id>
+                    <phase>package</phase>
+                    <goals>
+                        <goal>single</goal>
+                    </goals>
+                    <configuration>
+                        <archive>
+                            <manifest>
+                                <addClasspath>true</addClasspath>
+                                <mainClass>ricohoho.themoviedb.RicoFilm</mainClass>
+                            </manifest>
+                        </archive>
+                        <descriptorRefs>
+                            <descriptorRef>jar-with-dependencies</descriptorRef>
+                        </descriptorRefs>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+
+
     </plugins>
   </build>
+  
+    <properties>
+        <java.version>1.8</java.version>
+        <vlcj.version>5.0.0-SNAPSHOT</vlcj.version>
+    </properties>
+  
   <dependencies>
   	<dependency>
   		<groupId>com.googlecode.json-simple</groupId>
@@ -49,37 +80,42 @@
   		<groupId>com.google.code.gson</groupId>
   		<artifactId>gson</artifactId>
   	</dependency>
-  	<dependency>
+  	  	<dependency>
 		<groupId>org.mongodb</groupId>
 		<artifactId>mongo-java-driver</artifactId>
 		<version>3.5.0</version>
-	</dependency>  	
-  
-  <dependency>
-    <groupId>com.jcraft</groupId>
-    <artifactId>jsch</artifactId>
-    <version>0.1.55</version>
-</dependency>
+	</dependency>
+    <dependency>
+        <groupId>org.mongodb</groupId>
+        <artifactId>mongodb-driver-sync</artifactId>
+        <version>4.1.1</version>
+    </dependency>
+      <dependency>
+        <groupId>com.jcraft</groupId>
+        <artifactId>jsch</artifactId>
+        <version>0.1.55</version>
+    </dependency>
+    <dependency>
+        <groupId>org.apache.httpcomponents</groupId>
+        <artifactId>httpclient</artifactId>
+        <version>4.5.12</version>
+    </dependency>
+    <dependency>
+	    <groupId>ch.qos.logback</groupId>
+	    <artifactId>logback-classic</artifactId>
+	    <version>1.2.3</version>
+    </dependency>
 
-<dependency>
-    <groupId>org.apache.httpcomponents</groupId>
-    <artifactId>httpclient</artifactId>
-    <version>4.5.12</version>
-</dependency>
-  
- <dependency>
-	<groupId>ch.qos.logback</groupId>
-	<artifactId>logback-classic</artifactId>
-	<version>1.2.3</version>
-</dependency>
+      <dependency>
+          <groupId>com.github.kokorin.jaffree</groupId>
+          <artifactId>jaffree</artifactId>
+          <version>2022.06.03</version>
+      </dependency>
 
-  
+
   </dependencies>
-  
-  
-  
-  
-  <dependencyManagement>
+
+    <dependencyManagement>
   	<dependencies>
   		<dependency>
   			<groupId>com.googlecode.json-simple</groupId>

@@ -13,5 +13,6 @@ public class FilmFichier {
 	int anneeFilm=0;
 	String langue="";
 	List<String> listeNomFilmPossible=null;
+	long  filmId=0;
 
 }

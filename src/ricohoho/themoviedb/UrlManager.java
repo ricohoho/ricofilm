@@ -32,7 +32,7 @@ public class UrlManager {
 	public static String getUrl(String sURL) {
 		Logger logger = LoggerFactory.getLogger(UrlManager.class);
 		logger.debug( "getUrl : debut"); 
-		logger.info( "getUrl : sURL:"+sURL);
+		logger.debug( "getUrl : sURL:"+sURL);
 		String sReturn = "";						
 			  try {
 
@@ -50,7 +50,7 @@ public class UrlManager {
 					(conn.getInputStream()),"UTF8"));
 
 				String output;
-				logger.info("Output from Server .... \n");
+				logger.debug("Output from Server .... \n");
 				while ((output = br.readLine()) != null) {
 					//System.out.println(output);
 					sReturn=sReturn+output+"\n";

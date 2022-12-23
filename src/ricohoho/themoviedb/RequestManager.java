@@ -33,15 +33,16 @@ public class RequestManager {
 			e.printStackTrace();
 		}
 		
-		//1 : Appel des RESQUEST en cours pour le serveur concerné (dans laquel sont present les vidéo)
+		//1 : Appel des RESQUEST en cours pour le serveur concerne (dans laquel sont present les video)
 		String serveurHost=prop.getProperty("REQUEST_HTTP_HOST");							//"localhost";
 		String serveurPort=prop.getProperty("REQUEST_HTTP_PORT");							//"3000";
-		String p_status=prop.getProperty("REQUEST_STATUS");									//"AFAIRE";
+		String p_status=prop.getProperty("REQUEST_STATUS_AFAIRE");									//"AFAIRE";
+		String p_status_fait=prop.getProperty("REQUEST_STATUS_FAIT");									//"AFAIRE";
 		String p_serveur_name=prop.getProperty("SERVEUR_NAME");								//"NOS-RICO";
 		List<Request>  requestList = getRequestFilm( serveurHost, serveurPort, p_status, p_serveur_name ) ;
 		
 		//2 : Envoi des fichiers sur le serveru davic (en SFTP)
-		traitement(requestList);		
+		traitement(serveurHost,serveurPort,p_status_fait,requestList);		
 
 	}
 
@@ -144,7 +145,7 @@ public class RequestManager {
 	 * Execution des tratements en fct des requet en cours :STATUS = AFAIRE
 	 * @param listRequest
 	 */
-	static void traitement(List<Request> listRequest) {
+	static void traitement(String serveurHost,String serveurPort,String p_status,List<Request> listRequest) {
 		Logger logger = LoggerFactory.getLogger(RequestManager.class);
 		logger.debug( "traitement : debut"); 
 		Properties prop=new Properties();
@@ -182,8 +183,9 @@ public class RequestManager {
 	    	
 				//2) Update REQUEST.status='FAIT'
 	    		logger.info("Mise a jour du status");
-		    	String url="http://localhost:3000/request/edit";
-		    	request.setStatus("FAIT");
+	    		String url = "http://"+serveurHost+":"+serveurPort+"/request/edit";
+		    	//String url="http://localhost:3000/request/edit";
+		    	request.setStatus(p_status);
 		    	UrlManager.sendJson( url,request.getJson());
 		    	} catch (Exception ex ) {
 		    		logger.error("Excepiotn tratement fichier :"+ex);

@@ -22,12 +22,9 @@ public class FileMAnager {
 	List<Fichier> listeFichiersFilm = new ArrayList<Fichier>();
 	List<String> listeSsDossier = new ArrayList<String>();
 	
-	/**
-	 * 
-	 * @param path
-	 * @return
-	 */
-	public List<Fichier> getPAthFile(String path) { 
+	
+	
+	public List<Fichier> getPAthFile(String path, boolean avecSsDosier) { 
 		Logger logger = LoggerFactory.getLogger(FileMAnager.class);
 		logger.debug( "getPAthFile : debut"); 
 		logger.info("Path="+path);
@@ -66,15 +63,19 @@ public class FileMAnager {
 							    System.err.println("Cannot get the last modified time - " + e);
 							}
 						}				
+																		
+						listeFichiers.add(new Fichier(s[i].getParent(),s[i].getName(),bytes,dateFichier));
 						
-					
-						
-						listeFichiers.add(new Fichier(path,s[i].getName(),bytes,dateFichier)); 
 					} else {
 						//System.out.println("  ==> Not Match");
 					}
 				} else {
 					listeSsDossier.add(s[i].getAbsolutePath());
+					if (avecSsDosier) {
+						List<Fichier> listFileSsDossier = this.getPAthFile((s[i].getAbsolutePath()),avecSsDosier);
+						if (listFileSsDossier !=null && listFileSsDossier.size()>0) 
+							listeFichiers.addAll(listFileSsDossier);
+					}
 				}
 			}
 		}  catch (Exception pse) { 
@@ -85,8 +86,10 @@ public class FileMAnager {
 		return listeFichiers ;
 	}
 	
-	void initFilm(String path) {
-		this.listeFichiersFilm = this.getPAthFile(path);
+
+	
+	void initFilm(String path, boolean avecSsDosier) {
+		this.listeFichiersFilm = this.getPAthFile(path,avecSsDosier);
 	}
 	
 }

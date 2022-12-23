@@ -15,7 +15,7 @@ public class Request {
     "title" : "The 10th District Court: Moments of Trial",
     "serveur_name" : "POR80090940",
     "path" : "C:\\tempo\\test\\",
-    "file" : "10ème Chambre, Instants d'Audience (2004) - Raymond Depardon.avi",
+    "file" : "10eme Chambre, Instants d'Audience (2004) - Raymond Depardon.avi",
     "size" : "93121",
     "status" : "AFAIRE"
 	}

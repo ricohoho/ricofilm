@@ -2,6 +2,7 @@ package ricohoho.themoviedb;
 
 import static com.mongodb.client.model.Filters.eq;
 
+
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -37,6 +38,8 @@ import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.util.JSON;
 
+
+import ricohoho.ffmpeg.StreamFilm;
 import ricohoho.mongo.MongoManager;
 
 public class TheMovieDb {
@@ -47,6 +50,7 @@ public class TheMovieDb {
 	//public boolean addDb=false;
 	String dbMongoHost="";
 	int dbMongoPort=0;
+	
 	String dbMongoName="";
 	String dbUSerName="";
 	String dbPAssword="";
@@ -97,7 +101,10 @@ public class TheMovieDb {
  * @param serveurName
  * @param pathFilm
  */
-void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFilm ,boolean addDb) {
+
+// Version 20221102 : remplace la version sans le parametre 
+//version 2 de la focntion en prenant ne charge les sous dossiers ssDoossier
+void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFilm ,boolean addDb, boolean avecSsDossier) {
 	
 	Logger logger = LoggerFactory.getLogger(TheMovieDb.class);
 	logger.info( "traiterDossierSupprimeFilmDBFichierAbsent : debut"); 
@@ -114,10 +121,10 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 	
 	//1 : Liste des dichier film du dossier
 	logger.info("1]========================== Parse dossier ==========================");
-	listeFichier=parseDossier(pathFilm);
+	listeFichier=parseDossier(pathFilm,avecSsDossier);
 	
-	Map<String, Fichier> mapFichier = 
-			listeFichier.stream().collect(Collectors.toMap(Fichier::getNom, item -> item));
+	//Map<String, Fichier> mapFichier = listeFichier.stream().collect(Collectors.toMap(Fichier::getNom, item -> item));
+	Map<String, Fichier> mapFichier = listeFichier.stream().collect(Collectors.toMap(Fichier::getPathEtName, item -> item));
 	
 
 	
@@ -129,9 +136,13 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 	//query.put("RICO_FICHIER.path", "\\\\NOS-RICO\\video\\Films\\2019\\201904\\");
 	
 	query.put("RICO_FICHIER.serveur_name",serveurName);
-	query.put("RICO_FICHIER.path", pathFilm);
 	
-
+	if (avecSsDossier) {
+		///https://www.freeformatter.com/regex-tester.html
+		// signifie de prendre les sous doosier aussi
+		query.put("RICO_FICHIER.path", new BasicDBObject("$regex",pathFilm)); 
+	} else
+		query.put("RICO_FICHIER.path", pathFilm);	
 	
 		
 	BasicDBObject fields = new BasicDBObject();  
@@ -141,15 +152,16 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 	
 	
 	//3 : Comparaison des deux listes
-	//Pour chaque filmDeLaBase, si n'appartient pas à la liste des dossier 
+	//Pour chaque filmDeLaBase, si n'appartient pas ï¿½ la liste des dossier 
 	//	=>supression du fichier
 	//	=>Si plus de fichier ==> suppression du film de la base ! 
 	for (Document doc : docQuiMAtch ) {
 		 int doc_id = doc.getInteger("id");
+		 String film_title=doc.getString("title");
 		 BsonDocument bsonDocument = doc.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
 		 BsonArray rico_fichierArray = bsonDocument.getArray("RICO_FICHIER");
 		 List<BsonValue> rico_fichier_list = rico_fichierArray.getValues();
-		 logger.info("Object size :"+rico_fichierArray.size());
+		 logger.info("["+film_title+"/"+doc_id+"] Nbre de fichier :"+rico_fichierArray.size());
 		 int nb_suppression=0;
 		 for (BsonValue rico_fic : rico_fichier_list) {
 			 
@@ -161,23 +173,31 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 			 String file=rico_fic_bsondoc.get("file").asString().getValue();
 			 
 
-			 //System.out.println("serveur_name/path/file:"+ serveur_name+"/"+path+"/"+file);
-			 if (serveurName.contentEquals(serveur_name) && pathFilm.contentEquals(path)) {
-				 //System.out.println("  recheche du film su rle disque :"+file);
-				 //System.out.println("match:"+mapFichier.get(file));
-				 if (mapFichier.get(file)==null) {
+			 logger.debug("serveur_name/path/file:"+ serveur_name+"/"+path+"/"+file);
+			 //if (serveurName.contentEquals(serveur_name) && pathFilm.contentEquals(path)) {
+			 if (serveurName.contentEquals(serveur_name) && mapFichier.get(path+file)==null) {
+				 logger.info("recheche du film su rle disque :"+file);
+				 logger.info("match:"+mapFichier.get(file));
+//				 if (mapFichier.get(file)==null) {
 					 logger.info("Suppresion du fichier du film ["+doc_id+":"+path + "\\"+file);
 					 //Suppression de l'item dans l'aaray RICO_FICHIER
 					 BasicDBObject query2 = new BasicDBObject();
 					 query2.put("id", doc_id);
-					 String arrayName="RICO_FICHIER";					
-					 String deleteItemParamName="file";
-					 String delteItemValeur=file;
-					 mongoManager.arrayRemoveItem(collectionName, query2, arrayName, deleteItemParamName,delteItemValeur);		
+					 String arrayName="RICO_FICHIER";				
+					 
+					 //EF 2020/08/02 : debog => on supprime l'item RICOFICHIER sur ces 2 attributs file et path (et pas juste le FIchier)
+					 ArrayList<String> filtreArrayParam = new ArrayList<String>(Arrays.asList("path","file"));
+	     			 ArrayList<String> filtreArrayValue = new ArrayList<String>(Arrays.asList(path,file));										 
+					 
+					 mongoManager.arrayRemoveItem(collectionName, query2, arrayName, filtreArrayParam,filtreArrayValue);		
 					 
 					 nb_suppression++;					 
-				 }				 				 				 
-			 }	
+//				 }	else {
+//					 logger.info("PAs de Suppresion du fichier du film ["+doc_id+":"+path + "\\"+file);
+//				 }
+			 }	else {
+				 logger.info("PAs de Suppresion du fichier du film ["+doc_id+":"+path + "\\"+file);
+			 }
 		 }
 	
 		if (nb_suppression==rico_fichier_list.size()) {
@@ -194,21 +214,45 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 }
 	
 	
+	
 	/**
 	 * Traitement d'un dosssier de Film
 	 * @param pathFilm : Path du dossier contenat les fichier film
-	 * @param MEMO_RICOFILM : 
-	 * 			BD :   via la base de donné direct
+	 * @param memoRicoFIlm :
+	 * 			BD :   via la base de donnee direct
 	 * 			HTTP : via les Web service
-	 * 			NON	 :  pas de mémorisation 
-	 * @param downloadImagePoster : Téléchargemebnt des images poster : True / False
+	 * 			NON	 :  pas de memorisation
+	 * @param downloadImagePoster : Telechargemebnt des images poster : True / False
+	 * return int[0] => nombre total de fichier traite
+	return int[1] => nombre d'erreur
+	return int[2] => nombre d'erreur d'image
+	return int[3] => nombre d'insertion Film
+	return int[4] => nombre d'insertion de fichier
 	 */
-	void  traiteDossierFilm( String serveurName, String pathFilm ,String  memoRicoFIlm,boolean downloadImagePoster, int sousDossier	 ) {
+	public int[] traiteDossierFilm( String serveurName, String pathFilm ,String  memoRicoFIlm,boolean downloadImagePoster, int sousDossier	 ) {
+									
+		
+		// return int[0] => nombre total de fichier traitï¿½
+		// return int[1] => nombre d'erreur de recherche de film
+		// return int[2] => nombre d'erreur d'image
+		// return int[3] => nombre d'insertion Film
+		// return int[4] => nombre d'insertion de fichier		
+		int[] retourParse = new int[5];
+		retourParse[1]=0; // Nbre de ficier, film non trouvï¿½
+		retourParse[2]=0; // Nbre d'image non trouvï¿½
+		retourParse[3]=0; // Nbre d'image non trouvï¿½
+		retourParse[4]=0; // Nbre d'image non trouvï¿½
 		
 		Logger logger = LoggerFactory.getLogger(TheMovieDb.class);
-		logger.info( "traiteDossierFilm : debut"); 
+		logger.debug( "traiteDossierFilm : debut"); 
 		List<Fichier> listeFichier=null;
 		List<String> listesSsDossier=null;
+		
+		//Il faut que le path se termine par un / ou \ pour les comparaison dans la base ensuite ..
+		if (!pathFilm.substring(pathFilm.length()-1).equals(File.separator)) {
+			pathFilm = pathFilm + File.separator;
+		}
+		
 		LogText logText = new LogText(pathFilm,"log.txt");
 		MongoManager mongoManager=null;
 		
@@ -221,10 +265,10 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		//listeFichier=parseDossier(pathFilm);
 		
 		FileMAnager fileMAnager = new FileMAnager();
-		fileMAnager.initFilm(pathFilm);		
+		fileMAnager.initFilm(pathFilm, false);		
 		listeFichier= fileMAnager.listeFichiersFilm;
 		listesSsDossier= fileMAnager.listeSsDossier;
-		
+		retourParse[0] = fileMAnager.listeFichiersFilm.size();
 		
 		
 
@@ -244,19 +288,30 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 	            Film filmRico=null;
 	            int j=0;
 	            filmListMatch1Fichier=new ArrayList<Film>();
-	            //On parcour tout les titre possible de film (obtenu en fct du nom de ficier)
+	            
+	            //2021/12/27
+	            //Cas paticulier on l'on indique l'id MoviedB du film xxxx[[14325]]yyyy => movi
+	            //Dans ce pas pal la peine d'annalyser le nom et compareer avec des recherches dans MovieDB
+	            if (filmFichierAnalyse.filmId!=0) {
+	            	filmRico = new Film(filmFichierAnalyse.filmId);
+	            	logger.info("2.1]==========================filmId directe :[["+filmFichierAnalyse.filmId+"]]==========================");
+	            }
+	            
+	            //On parcour tout les titre possible de film (obtenu en fct du nom de fichier)
 	            while (j<listeNomFilmPossible.size() && filmRico==null){
 		            nomFilm=listeNomFilmPossible.get(j);
-		            logger.info("2.2]==========================Fichier nétoyé ["+(i+1)+","+(j+1)+"/"+listeNomFilmPossible.size()+"]:[["+nomFilm+"]]==========================");		        	
+		            logger.info("2.2]==========================Fichier nï¿½toyï¿½ ["+(i+1)+","+(j+1)+"/"+listeNomFilmPossible.size()+"]:[["+nomFilm+"]]==========================");		        	
 		            //filmRico=
 		            //REcherche des films dans TheMovieDb matchant une partie du nom du Fichier
 		            filmListMatch1Fichier=getFilmTheMovieDb(nomFilm);
 		            if(filmListMatch1Fichier.size()>0) {
-		            	//On recherche celui qui MAtche l'année (si presente dans le fichier : filmFichierAnalyse.anneeFilm
+		            	//On recherche celui qui MAtche l'annee (si presente dans le fichier : filmFichierAnalyse.anneeFilm
 		            	//Si aucunne annee correspond on prend le prermier
 		            	int k=0;
 		            	while  (k<filmListMatch1Fichier.size() &&  filmRico==null ) {
-		            		logger.info("2.2]==========================film ["+(k+1)+"/"+filmListMatch1Fichier.size()+"] MovieDB Qui MAtch ["+(i+1)+","+(j+1)+"]:[["+filmListMatch1Fichier.get(k).getTitle()+"]]==========================");
+		            		//film ["+(k+1)+"/"+filmListMatch1Fichier.size()+"] MovieDB Qui MAtch
+		            		logger.info("2.2.1]========================== comparaison fichier : ["+nomFilm+"] avec film ["+filmListMatch1Fichier.get(k).getTitle()+"]");
+		            		logger.info("2.2.2]========================== comparaison fichier -> ["+(i+1)+","+(j+1)+"]: avec film ["+(k+1)+"/"+filmListMatch1Fichier.size()+"]");
 		            		//Annee Du Fichier
 		            		int annee_fichier=filmFichierAnalyse.anneeFilm;
 		            		
@@ -265,14 +320,20 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		                    Date date_themoviedb=null;
 		                    int anne_themoviedb=0;
 							try {
-								date_themoviedb = formatter.parse(filmListMatch1Fichier.get(k).getRelease_date());
-							    Calendar cal = Calendar.getInstance();
-							    cal.setTime(date_themoviedb);
-							    anne_themoviedb = cal.get(Calendar.YEAR);	
+								
+								//Si annee movieDb est null
+								if (filmListMatch1Fichier.get(k).getRelease_date()!=null && !filmListMatch1Fichier.get(k).getRelease_date().equals("") ) { //&& date_themoviedb!=null ) {		
+									date_themoviedb = formatter.parse(filmListMatch1Fichier.get(k).getRelease_date());
+									Calendar cal = Calendar.getInstance();
+									cal.setTime(date_themoviedb);
+									anne_themoviedb = cal.get(Calendar.YEAR);
+								} else {
+									anne_themoviedb=1900;
+								}
 							} catch (java.text.ParseException e) {
 								// TODO Auto-generated catch block
 								e.printStackTrace();
-								logger.warn("ParseException:"+e.toString());
+								logger.warn("ParseException:["+date_themoviedb+"] excepiton"+e.toString());
 								anne_themoviedb=1900;
 							} catch (Exception e ) {
 								e.printStackTrace();
@@ -281,59 +342,67 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 							}
 	
 							//oN COMPARE
-		                    logger.info("annee_fichier="+annee_fichier+"/anne_themoviedb="+anne_themoviedb);
+							logger.info("2.2.3]========================== comparaison fichier -> annee_fichier="+annee_fichier+"/anne_themoviedb="+anne_themoviedb);		                    
 		            		if (annee_fichier==anne_themoviedb) {		            					            			
 		            			filmRico=filmListMatch1Fichier.get(k);
-		            			logger.info("2.3]==========================Le Film ["+i+"] qui match est["+j+","+k+"]:[["+filmRico.original_title+"]]==========================");
+		            			//logger.info("2.3]==========================Le Film ["+i+"] qui match est["+j+","+k+"]:[["+filmRico.original_title+"]]==========================");
+		            			logger.info("2.3]======================== !!!  Le Gagant pour l'annï¿½e du fichier ["+nomFilm+"] est :[["+filmRico.getTitle()+"]] !!! ======================");
 		            		}
 		            		k++;
 		            	}
-		            	//Si pas de correspondance année => on prend le premier qui match!! 
-		            	//==> amélioepeut etre ...
+		            	//Si pas de correspondance annï¿½e => on prend le premier qui match!! 
+		            	//==> amï¿½lioepeut etre ...
 		            	if(filmRico==null) {
 		            		filmRico=filmListMatch1Fichier.get(0);
-		            		logger.info("2.3]==========================Le Film  ["+i+"] qui match  pardefaut (0) ["+j+",0]:[["+filmRico.original_title+"]]==========================");		    
+		            		//logger.info("2.3]==========================Le Film  ["+i+"] qui match  pardefaut (0) ["+j+",0]:[["+filmRico.original_title+"]]==========================");
+		            		logger.info("2.3]======================== !!!  Le Gagant par defaut du fichier ["+nomFilm+"] est :[["+filmRico.getTitle()+"]] !!! ======================");
 		            	}
+		            	
+		            } else {
+		            	logger.info("2.2.1]========================== comparaison fichier : ["+nomFilm+"] avec <rien trouvï¿½ dans TheMovieDB>");
 		            }
 		            
 		            j++;
 	            }    
 	            
 	            
-	            if(filmRico != null) {	            		            
-		            String image = filmRico.getPoster_path();
-		            logger.info("--image(getPoster_path)="+image);
-		            //2020 ne fonctionne plaus , il faut allez chercher les images dans l'url suivante pour Matrix par exemple
-		            //https://api.themoviedb.org/3/movie/603-the-matrix/images?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&language=en-US&include_image_language=FR
-		            //soit get file_path
-		            
-		            JSONObject _DBObjectImage= getFilmTheMovieDbImage(filmRico.id);
-		            try {
-		            	image = (String)_DBObjectImage.get("file_path");
-		            } catch(Exception e) {
-		            	logger.info("--image(file_path)=Pas d'image");
-		            	image=null;
-		            }
-		            
-		            
-		            if (image != null) {
-		            	logger.info("--image(file_path)="+image);
-			            if ( !image.equals("") ) {
-			            	//System.out.println("2.2] download image poster");
-			            	logger.info("2.4]==========================download image poster==========================");
-			            	downloadImage(image,pathFilm,nomFichier.substring(0,nomFichier.length() - 4)+".jpg");
-			            	logText.writeToFile("===>OK" + "\t" +nomFichier+"\t"+filmRico.getTitle() );
+	            if(filmRico != null) {	            		    
+	            	if (downloadImagePoster) {
+			            String image = filmRico.getPoster_path();
+			            logger.debug("--image(getPoster_path)="+image);
+			            //2020 ne fonctionne plaus , il faut allez chercher les images dans l'url suivante pour Matrix par exemple
+			            //https://api.themoviedb.org/3/movie/603-the-matrix/images?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&language=en-US&include_image_language=FR
+			            //soit get file_path
+			            
+			            JSONObject _DBObjectImage= getFilmTheMovieDbImage(filmRico.id);
+			            try {
+			            	image = (String)_DBObjectImage.get("file_path");
+			            } catch(Exception e) {
+			            	logger.info("==== >Pas d'image");
+			            	image=null;
+			            }
+			            
+			            
+			            if (image != null) {
+			            	logger.debug("--image(file_path)="+image);
+				            if ( !image.equals("") ) {
+				            	//System.out.println("2.2] download image poster");
+				            	logger.info("2.4]==========================download image poster==========================");
+				            	downloadImage(image,pathFilm,nomFichier.substring(0,nomFichier.length() - 4)+".jpg");
+				            	logText.writeToFile("===>OK" + "\t" +nomFichier+"\t"+filmRico.getTitle() );
+				            } else {
+				            	logText.writeToFile("===>OO" + "\t" +nomFichier+"\t"+filmRico.getTitle() +"\t"+"Pas d'image");
+				            	retourParse[2]=retourParse[2]+1;
+				            }
 			            } else {
 			            	logText.writeToFile("===>OO" + "\t" +nomFichier+"\t"+filmRico.getTitle() +"\t"+"Pas d'image");
-			            }
-		            } else {
-		            	logText.writeToFile("===>OO" + "\t" +nomFichier+"\t"+filmRico.getTitle() +"\t"+"Pas d'image");
-		            }	
-		            
-		            //Mémorisation des infos du films dans une base MongoDB
+			            	retourParse[2]=retourParse[2]+1; 
+			            }	
+	            	}
+		            //Mï¿½morisation des infos du films dans une base MongoDB
 		            if (memoRicoFIlm.equals("BD")) {		            			           
-		            	logger.info("Mémorisation dans RicoFIlm direct par cnx BD");
-		            	//Recherche si l'id du film est déjà présent dans la bd
+		            	logger.info("Memorisation dans RicoFIlm direct par cnx BD");
+		            	//Recherche si l'id du film est dï¿½jï¿½ prï¿½sent dans la bd
 		            	BasicDBObject whereQuery = new BasicDBObject();
 		     		    whereQuery.put("id", filmRico.id);
 		     		    BasicDBObject fields = new BasicDBObject();
@@ -342,14 +411,16 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		     		    int i_nb_matchBD= mongoManager.selectDB("films", whereQuery, fields);
 		     		    if(i_nb_matchBD==0) {
 		     		    	logger.info("2.4]==========================Insertion DB==========================");
-		     		    	DBObject _DBObject= getFilmTheMovieDbDetail(filmRico.id);			     		    		     		    	
+		     		    	DBObject _DBObject= getFilmTheMovieDbDetail(filmRico.id);
 		     		    	mongoManager.insertJSON("films",_DBObject);
 		     		    	
-		     		    	
+
+
 		     				//==Ajout partie Fichier
 		     				String arrayName  = "RICO_FICHIER";
 		     				Bson filter = eq("id",  filmRico.id);		     						     			   
-		     			    BasicDBObject newDocument = new BasicDBObject();
+		     			    //BasicDBObject newDocument = new BasicDBObject();
+							Document newDocument = new Document();
 		     			   
 		     			    newDocument.put("serveur_name", serveurName);
 		     			    newDocument.put("insertDate", new Date());
@@ -357,12 +428,20 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 			     			newDocument.put("file", nomFichier);
 			     			newDocument.put("size", listeFichier.get(i).taille);
 			     			newDocument.put("fileDate", listeFichier.get(i).dateFile);
-		     			    List<BasicDBObject> list = new ArrayList<>();
+
+							//20221221 : Recherche des informations  vidÃ©/audio du fichiers
+							List<Document> InfoFilmSstreams = (new StreamFilm(new File(pathFilm+nomFichier))).getInformationsFile();
+							newDocument.put("InfoStreams", InfoFilmSstreams);
+
+		     			    //List<BasicDBObject> list = new ArrayList<>();
+							List<Document> list = new ArrayList<>();
 		     			    list.add(newDocument); 		     			    
-		     				mongoManager.arrayAddItem("films",filter,arrayName,list);
+		     				mongoManager.arrayAddItem2("films",filter,arrayName,list);
+		     				retourParse[3]++;//nb d'inseetion de film
+		     				retourParse[4]++;//nb d'inseetion de fichier
 		     				
 		     		    	
-	/*	     		    	
+/*	     		    	
 		     		    	//Maj avec les infosspecifique du fichier
 		     		    	BasicDBObject query = new BasicDBObject();
 		     		    	query.put("id", filmRico.id);
@@ -376,6 +455,17 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 			     			updateObj.put("$set", newDocument);
 			     			mongoManager.updateDB("films",query,updateObj);
 */			     			
+		     				//20101205
+		     				//Ajout d'une date d'ajout dans la base
+		     				BasicDBObject query = new BasicDBObject();
+		     		    	query.put("id", filmRico.id);
+							BasicDBObject newDocumentBO = new BasicDBObject();
+							newDocumentBO.put("UPDATE_DB_DATE", new Date());
+			     			//newDocument.put("UPDATE_DB_DATE", listeFichier.get(i).dateFile);
+			     			BasicDBObject updateObj = new BasicDBObject();
+			     			updateObj.put("$set", newDocumentBO);
+			     			mongoManager.updateDB("films",query,updateObj);
+		     				
 		     		    	
 		     		    }else{
 		     		    	logger.info("2.4]==========================Film deja existant==========================");	
@@ -383,33 +473,81 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		     		    	String arrayName  = "RICO_FICHIER";
 		     		    	Bson filter = eq("id", filmRico.id);
 		     				List<Document> arrayItemFiltered = null;		     						     				
-		     				ArrayList<String> filtreArray = new ArrayList<String>(Arrays.asList("path/"+pathFilm,"file/	"+nomFichier));		     						     				
-		     		    	arrayItemFiltered= mongoManager.arrayListITemFind("films", filter,arrayName,filtreArray);
+		     				//ArrayList<String> filtreArray = new ArrayList<String>(Arrays.asList("path||"+pathFilm,"file||"+nomFichier));		     						     				
+		     				
+		     				ArrayList<String> filtreArrayParam = new ArrayList<String>(Arrays.asList("path","file"));
+		     				ArrayList<String> filtreArrayValue = new ArrayList<String>(Arrays.asList(pathFilm,nomFichier));
+		     				
+		     				
+		     		    	arrayItemFiltered= mongoManager.arrayListITemFind("films", filter,arrayName,filtreArrayParam,filtreArrayValue);
 		     		    	//System.out.println("lliste filtre find "+arrayItemFiltered.size());
-		     		    	//Si size =0 ==> insertion FILM existant , mais fichier différent 
+		     		    	//Si size =0 ==> insertion FILM existant , mais fichier diffï¿½rent 
 		     		    	if (arrayItemFiltered.size()==0) {
-		     		    		logger.info("FILM existant , mais path / fichier différent ==> Insertion nouveau Fihcier");
+		     		    		logger.info("FILM existant , mais path / fichier diffï¿½rent ==> Insertion nouveau Fihcier");
 		     		    		//==Ajout partie Fichier
 			     				arrayName  = "RICO_FICHIER";
-			     				filter = eq("id",  filmRico.id);		     						     			   
-			     			    BasicDBObject newDocument = new BasicDBObject();
+			     				filter = eq("id",  filmRico.id);
+								Document newDocument = new Document();
 			     			    newDocument.put("serveur_name", serveurName);
 			     			    newDocument.put("insertDate", new Date());
 				     			newDocument.put("path", pathFilm);
 				     			newDocument.put("file", nomFichier);
 				     			newDocument.put("size", listeFichier.get(i).taille);
 				     			newDocument.put("fileDate", listeFichier.get(i).dateFile);
-			     			    List<BasicDBObject> list = new ArrayList<>();
+
+								//20221221 : Recherche des informations  vidÃ©/audio du fichiers
+								List<Document> InfoFilmSstreams = (new StreamFilm(new File(pathFilm+nomFichier))).getInformationsFile();
+								newDocument.put("InfoStreams", InfoFilmSstreams);
+
+			     			    List<Document> list = new ArrayList<>();
 			     			    list.add(newDocument); 		     			    
-			     				mongoManager.arrayAddItem("films",filter,arrayName,list);
+			     				mongoManager.arrayAddItem2("films",filter,arrayName,list);
+
+			     				//20101205
+			     				//Ajout d'une date d'ajout dans la base
+			     				BasicDBObject query = new BasicDBObject();
+			     		    	query.put("id", filmRico.id);
+								BasicDBObject newDocumentBO = new BasicDBObject();
+								newDocumentBO.put("UPDATE_DB_DATE", new Date());
+				     			//newDocument.put("UPDATE_DB_DATE", listeFichier.get(i).dateFile);
+				     			BasicDBObject updateObj = new BasicDBObject();
+				     			updateObj.put("$set", newDocumentBO);
+				     			mongoManager.updateDB("films",query,updateObj);
+			     				
+			     				retourParse[4]++;//nb d'inseetion de fichier
 		     		    	} else {
 		     		    		logger.info("FILM existant , et path / fichier existant ==> aucune action");
+								Document doc_RICO_FILM = arrayItemFiltered.get(0);
+								List<Document> InfoFilmSstreams= (List<Document>) doc_RICO_FILM.get("InfoStreams");
+								if (InfoFilmSstreams==null ) {
+									logger.info("FILM existant , Mais besoin d'ajout des infos Stream");
+									//==> mise a jour su chmaps stram dans le bon RICOFILM[]
+									//1 - Suppression du Rico_FILM qui match
+										logger.info("Suppresion du fichier du film ["+filmRico.id+":"+pathFilm + "\\"+nomFichier);
+										//Suppression de l'item dans l'aaray RICO_FICHIER
+										BasicDBObject query2 = new BasicDBObject();
+										query2.put("id",filmRico.id);
+										//EF 2020/08/02 : on supprime l'item RICOFICHIER sur ces 2 attributs file et path (et pas juste le FIchier)
+										ArrayList<String> filtreArrayParamX = new ArrayList<String>(Arrays.asList("path","file"));
+										ArrayList<String> filtreArrayValueX = new ArrayList<String>(Arrays.asList(pathFilm,nomFichier));
+										mongoManager.arrayRemoveItem("films", query2, arrayName, filtreArrayParamX,filtreArrayValueX);
+									//2 - creation du RicoFilm avec le bon stream
+										//Recherche du Stream
+										logger.info("Ajout du fichier du film + Stream  ["+filmRico.id+":"+pathFilm + "\\"+nomFichier);
+										List<Document> InfoFilmSstreams2 = (new StreamFilm(new File(pathFilm+nomFichier))).getInformationsFile();
+										doc_RICO_FILM.put("InfoStreams", InfoFilmSstreams2);
+										List<Document> list = new ArrayList<>();
+										list.add(doc_RICO_FILM);
+										mongoManager.arrayAddItem2("films",filter,arrayName,list);
+								} else {
+									logger.info("FILM existant , et  infos Stream OK");
+								}
 		     		    	}
 		     		    }
 		            } else if (memoRicoFIlm.equals("HTTP")){
 		            	//Add via WebSrvREST
-		            	logger.info("Mémorisation dans RicoFIlm via serveice REST");
-		            	//Recherche si l'id du film est déjà présent dans la bd
+		            	logger.info("Memorisation dans RicoFIlm via serveice REST");
+		            	//Recherche si l'id du film est deja present dans la bd
 		        		String p_name = "id:"+filmRico.id;		
 		        		FilmRestManager _FilmRestManager= new FilmRestManager("localhost","3000");		        		
 		        		int i_nb_matchBD = _FilmRestManager.getFilmsCount(  p_name ) ;		        		 
@@ -431,23 +569,30 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 			     		}
 		            	
 		            } else {
-		            	logger.info("PAs de mémorisation du film dans Rico FIlm");
+		            	logger.info("PAs de mï¿½morisation du film dans Rico FIlm");
 		            }
 		            
 	            } else {
-	            	logText.writeToFile("===>KO" + "\t" + nomFichier+"\t!!!!!"+ nomFilm);	
+	            	logText.writeToFile("===>KO" + "\t" + nomFichier+"\t!!!!!"+ nomFilm);
+	            	retourParse[1] =retourParse[1] +1; 
 		        }
 		 }		
 		 
 		 
 		 //Gestion des Ss Dossier
 		 if (sousDossier>0) {
+			 int[] retourSsDossier = new int[5];
 			 for(int i=0; i<listesSsDossier.size(); i++) {
-				 logger.info("traiteDossierFilm Appel reccurssif : "+listesSsDossier.get(i));
-				 traiteDossierFilm(  serveurName,  listesSsDossier.get(i) ,memoRicoFIlm,downloadImagePoster, sousDossier-1);  
+				 logger.info("traiteDossierFilm Appel reccurssif : "+listesSsDossier.get(i));				 
+				 retourSsDossier = traiteDossierFilm(  serveurName,  listesSsDossier.get(i)+File.separator ,memoRicoFIlm,downloadImagePoster, sousDossier-1);
+				 retourParse[0] =retourParse[0] + retourSsDossier[0];
+				 retourParse[1] =retourParse[1] + retourSsDossier[1];
+				 retourParse[2] =retourParse[2] + retourSsDossier[2];
+				 retourParse[3] =retourParse[3] + retourSsDossier[3];
+				 retourParse[4] =retourParse[4] + retourSsDossier[4];
 			 }
 		 }
-		
+		 return retourParse;
 	}
 	
 	
@@ -455,11 +600,11 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 	 *  Retrun les ficier de films d'un dossier!! 
 	 * @param path
 	 */
-	static List<Fichier> parseDossier(String path) {
+	static List<Fichier> parseDossier(String path, boolean avecSsDossier) {
 		List<Fichier> listeFichier=null;
 		//TODO 				 
-		FileMAnager fileMAnager = new FileMAnager();
-		fileMAnager.initFilm(path);		
+		FileMAnager fileMAnager = new FileMAnager(); 
+		fileMAnager.initFilm(path,avecSsDossier);		
 		listeFichier= fileMAnager.listeFichiersFilm;
 		
 		return listeFichier;
@@ -494,11 +639,13 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		
 			//TODO
 			//Exemple1
-			//10ème Chambre, Instants d'Audience (2004) - Raymond Depardon
+			//10ï¿½me Chambre, Instants d'Audience (2004) - Raymond Depardon
 			
 			//Exemple 2
 			//20th.Century.Women.2016.FRENCH.BDRip.XviD-EXTREME
 	
+			//exemple 3
+			//Un.Mari.De.Trop.FRENCH.DVDRip.XviD-ZANBiC.FUCK.[emule-island.com].avi
 			
 			//0):suppression des extension
 			sfchier=sfchier.substring(0,sfchier.lastIndexOf("."));
@@ -506,12 +653,30 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 			//1):Suppressio des '.' =>' '
 			sfchier=sfchier.replace(".", " ");
 			
-			//-- On determine une chaine année dans lenom du fichier
-			//Pattern p = Pattern.compile("[19|20][0-9][0-9]+");
-			Pattern p = Pattern.compile("(19)|(20)[0-9]+[0-9]+");
+			logger.debug("sfchier:"+sfchier);
+			
+			
+			
+			//20211227 ajout de la possibiliï¿½ d'indiquer l'Id MovidDB da,ns le nom du fichier
+			// Extraction de MovieDB iD dansd le nom du fichier, pour gerer les cas ou la detection est coplexe
+			Pattern p = Pattern.compile("\\[\\[[0-9]+\\]\\]");
 			Matcher m = p.matcher(sfchier);
+			logger.info(p.toString());
+			long MovieDbID=0;
+			while (m.find()) {
+				String element =m.group();
+				MovieDbID = Long.parseLong(element.replace("[","").replace("]", ""));
+				logger.info("MovieDbID:"+MovieDbID);
+			    // append n to list
+			}			
+			filmFichier.filmId=MovieDbID;
+			
+			//-- On determine une chaine annï¿½e dans lenom du fichier
+			//Pattern p = Pattern.compile("[19|20][0-9][0-9]+");
+			 p = Pattern.compile("(19)[0-9]+[0-9]|(20)[0-9]+[0-9]+");
+			 m = p.matcher(sfchier);
 			int anneeFilm=0;
-			//On prend la première annee du fichier !
+			//On prend la premiï¿½re annee du fichier !
 			if(m.find()) {
 				anneeFilm = Integer.parseInt(m.group());
 				logger.info("anneeFilm:"+anneeFilm);
@@ -522,22 +687,55 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 			    System.out.println("anneeFilm:"+anneeFilm);
 			    // append n to list
 			}
-			*/
+			*/							
 			
 			if(anneeFilm>0) {
-				sfchier=sfchier.substring(0,sfchier.indexOf(new Integer(anneeFilm).toString()));
-				filmFichier.anneeFilm=anneeFilm;
+				//SI le ficier commence par une annï¿½e pas de traiement => on supprime pas la date on considï¿½re qu'elle fait partie du nom du film 
+				if (sfchier.indexOf(new Integer(anneeFilm).toString())>0) {
+					sfchier=sfchier.substring(0,sfchier.indexOf(new Integer(anneeFilm).toString())).trim();
+					filmFichier.anneeFilm=anneeFilm;
+				}
 			}
 			
-			//--Remplace "ème" --> "e"
-			sfchier= sfchier.replace("ème", "e");			
+			
+			
+			
+			
+			
+			//--Remplace "ï¿½me" --> "e"
+			sfchier= sfchier.replace("ï¿½me", "e");			
 			if (sfchier.indexOf("(")>0) sfchier= sfchier.substring(0, sfchier.indexOf("("));
 			if (sfchier.indexOf("[")>0) sfchier= sfchier.substring(0, sfchier.indexOf("["));
 			
+			//Cas 3 di fichier xxxFRENCHyyy.avi ajouter xxx dans la liste de film
+			if (sfchier.toUpperCase().indexOf("FRENCH")>0) listeNomFilmPossible.add(sfchier.substring(0, sfchier.toUpperCase().indexOf("FRENCH")));
+			
+			//Cas 4 du fichier xxxVOSTFRyyy.avi ajouter xxx dans la liste de film
+			if (sfchier.toUpperCase().indexOf("VOSTFR")>0) listeNomFilmPossible.add(sfchier.substring(0, sfchier.toUpperCase().indexOf("VOSTFR")));
+			
+			//Cas 5 du fichier xxxTRUEFRENCHyyy.avi ajouter xxx dans la liste de film
+			if (sfchier.toUpperCase().indexOf("TRUEFRENCH")>0) listeNomFilmPossible.add(sfchier.substring(0, sfchier.toUpperCase().indexOf("TRUEFRENCH")));
+			
+			//Cas 5 du fichier xxxx264yyy.avi ajouter xxx dans la liste de film
+			if (sfchier.toUpperCase().indexOf("x264")>0) listeNomFilmPossible.add(sfchier.substring(0, sfchier.toUpperCase().indexOf("x264")));
+			
+			//Cas 6 du fichier xxxx720yyy.avi ajouter xxx dans la liste de film
+			if (sfchier.toUpperCase().indexOf("720")>0) listeNomFilmPossible.add(sfchier.substring(0, sfchier.toUpperCase().indexOf("720")));
+			
+			//CAS 7 du fichier xxxxDVDRIPyyy.avi ajouter xxx dans la liste de film
+			if (sfchier.toUpperCase().indexOf("DVDRIP")>0) listeNomFilmPossible.add(sfchier.substring(0, sfchier.toUpperCase().indexOf("DVDRIP")));
+			
+			//CAS 8 du fichier xxxxH264yyy.avi ajouter xxx dans la liste de film
+			if (sfchier.toUpperCase().indexOf("H264")>0) listeNomFilmPossible.add(sfchier.substring(0, sfchier.toUpperCase().indexOf("H264")));
+			
 			sfchier=sfchier.replace("VOSTFR", "");
+			sfchier=sfchier.replace("x264", "");
 			sfchier=sfchier.replace(" FRENCH", "");
 			sfchier=sfchier.replace(" TRUEFRENCH", "");
+			sfchier=sfchier.replace("True French", "");			
 			sfchier=sfchier.replace(" VF", "");
+			sfchier=sfchier.replace("DVDRip", "");
+			
 			
 			listeNomFilmPossible.add(sfchier);	
 			
@@ -578,7 +776,8 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 			e1.printStackTrace();
 			logger.error("{}",e1);
 		}
-		String sURL = "https://api.themoviedb.org/3/search/movie?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&language=en-US&query="+film+"&page=1&include_adult=false";
+		//String sURL = "https://api.themoviedb.org/3/search/movie?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&language=en-US&query="+film+"&page=1&include_adult=false";
+		String sURL = "https://api.themoviedb.org/3/search/movie?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&language=FR&query="+film+"&page=1&include_adult=false";
 		
 		String sReturn= UrlManager.getUrl( sURL);
 		//System.out.println("retour http :"+sReturn);
@@ -656,9 +855,9 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		logger.debug( "getFilmTheMovieDbImage : debut"); 
 		//https://api.themoviedb.org/3/movie/603-the-matrix/images?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&language=en-US&include_image_language=FR
 		String sURL = "https://api.themoviedb.org/3/movie/"+filmId+"/images?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&language=en-US&include_image_language=FR,EN,null";
-		logger.info("getFilmTheMovieDbImage : sURL="+sURL);
+		logger.debug("getFilmTheMovieDbImage : sURL="+sURL);
 		String sReturn= UrlManager.getUrl( sURL);
-		logger.info("getFilmTheMovieDbImage : sReturn="+sReturn);
+		logger.debug("getFilmTheMovieDbImage : sReturn="+sReturn);
 		JSONObject objFilmImage=null;
 			
 		try {
@@ -668,7 +867,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
             JSONParser parser = new JSONParser();
    		 	Object obj;		    
    		 	
-   		 	//parse su JSON retrouné
+   		 	//parse su JSON retrounï¿½
 			obj = parser.parse(sReturn);			
 			JSONObject jsonObject = (JSONObject) obj;
 			//System.out.println("testObjetJSONJSONObject=");
@@ -678,9 +877,17 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
             JSONArray filmsImage = (JSONArray) jsonObject.get("posters");
 			
 			
-            //On prende la première image ! !uniquement
-             objFilmImage =(JSONObject)filmsImage.get(0);// films.getJSONObject(i);
-           
+            //On prende la premiï¿½re image ! !uniquement
+            if (filmsImage.size()>0) {
+            	objFilmImage =(JSONObject)filmsImage.get(0);// films.getJSONObject(i);
+            } else { //si pas de poster => reccuperation dans  "backdrops"
+            	filmsImage = (JSONArray) jsonObject.get("backdrops");
+            	if (filmsImage.size()>0) {
+            		objFilmImage =(JSONObject)filmsImage.get(0);// films.getJSONObject(i);
+            	} else {            	
+            		filmsImage=null;
+            	}
+            }
              
                                                 	         
 		} catch (Exception e) {
@@ -701,9 +908,9 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		logger.debug( "getFilmTheMovieDbDetail : debut"); 
 		//String sURL="https://api.themoviedb.org/3/movie/603?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&append_to_response=credits,videos"
 		String sURL = "https://api.themoviedb.org/3/movie/"+filmId+"?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&language=FR&append_to_response=credits,videos";
-		logger.info("sURL="+sURL);
+		logger.debug("sURL="+sURL);
 		String sReturn= UrlManager.getUrl( sURL);
-		logger.info("sReturn="+sReturn);
+		logger.debug("sReturn="+sReturn);
 		DBObject obj=null;
 			
 		try {
@@ -726,7 +933,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 	} 
 	 
 	/*
-	 * Recherche du Json du detail d'un film (identique à getFilmTheMovieDbDetail mais revoi un JSONObject
+	 * Recherche du Json du detail d'un film (identique ï¿½ getFilmTheMovieDbDetail mais revoi un JSONObject
 	 * https://developers.themoviedb.org/3/movies/get-movie-details
 	 */
 	 JSONObject getFilmTheMovieDbDetailJson(long  filmId ) {
@@ -736,7 +943,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 			String sURL = "https://api.themoviedb.org/3/movie/"+filmId+"?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&language=FR&append_to_response=credits,videos";
 			logger.info("sURL="+sURL); 
 			String sReturn= UrlManager.getUrl( sURL);
-			logger.info("sReturn="+sReturn);
+			logger.debug("sReturn="+sReturn);
 			JSONObject objRequest=null;
 				
 			 JSONParser parser = new JSONParser();
@@ -749,8 +956,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 				e.printStackTrace();
 				logger.error("{}",e);
 			}
-			return objRequest;
-	         
+			return objRequest;	         
 		}
 	
 /**
@@ -772,7 +978,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		String uRL="https://image.tmdb.org/t/p/w600_and_h900_bestv2/";		
 		
 		String imageUrl =uRL + image;
-		logger.info("Download"+imageUrl + "to "+path+destinationFile);
+		logger.debug("Download : "+imageUrl + "to "+path+destinationFile);
 		try {
 			UrlManager.saveImage(imageUrl, path+destinationFile);
 		} catch (IOException e) {

@@ -4,6 +4,10 @@ import static com.mongodb.client.model.Filters.eq;
 import static com.mongodb.client.model.Updates.push;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import org.bson.Document;
@@ -14,6 +18,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.mongodb.BasicDBObject;
+import com.mongodb.Block;
 import com.mongodb.DB;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
@@ -21,11 +26,15 @@ import com.mongodb.MongoClient;
 import com.mongodb.MongoClientURI;
 import com.mongodb.MongoException;
 import com.mongodb.WriteResult;
+import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.Accumulators;
+import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
 
@@ -105,14 +114,19 @@ public class MongoManager {
 		 try {
 			 DBCollection table =  this.db.getCollection(collectionName);
 			 table.insert(_DBObject);
-				logger.info("Insert Done");
+				logger.debug("Insert Done");
 		    //} catch (UnknownHostException e) {
 			//e.printStackTrace();
 		 } catch (MongoException e) {
 			e.printStackTrace();
+			logger.error("Exception "+e.toString());
 		 }
 		
 	}
+	
+	
+
+	
 	
 	//
 	/**
@@ -208,7 +222,7 @@ public class MongoManager {
 	
 	
 	
-	/** permet de créer ou d'ajouter des item a une liste dans JSON
+	/** permet de creer ou d'ajouter des item a une liste dans JSON
 	 * db.collection.update({_id:1},{$push:{scores:{type:"quiz", score:99}}})
 	 * 
 	 * collection.update("{_id:1}").with("{$push:{scores:{type:#, score:#}}}", "quiz", 99);
@@ -261,9 +275,15 @@ public class MongoManager {
 	
 	
 	public UpdateResult arrayAddItem2(String collectionName,Bson filter,String arrayName,List<Document> list) {
-
-		MongoCollection<Document> collection = this.database.getCollection(collectionName);		
-	    UpdateResult updateOne = collection.updateOne(filter, Updates.pushEach(arrayName, list));
+		UpdateResult updateOne=null;
+		try {
+			System.out.println("arrayAddItem2 list="+list.toString());
+			MongoCollection<Document> collection = this.database.getCollection(collectionName);
+			updateOne = collection.updateOne(filter, Updates.pushEach(arrayName, list));
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("Excepiotn : "+e);
+		}
 	    return updateOne;
 	}
 	
@@ -273,14 +293,49 @@ public class MongoManager {
 	 * @param collectionName : Nom de la collection
 	 * @param query : Indentification du doc
 	 * @param arrayName : Nom de la liste
-	 * @param deleteItemParamName/deleteItemParamName  : IDentification del'item de la liste à supprimer
+	 * @param deleteItemParamName/deleteItemParamName  : IDentification del'item de la liste ï¿½ supprimer
 	 */
 	public void arrayRemoveItem(String collectionName,BasicDBObject query,String arrayName, String deleteItemParamName, String delteItemValeur) {
 		//https://stackoverflow.com/questions/17061665/mongodb-remove-item-from-array
 		MongoCollection<Document> collection = this.database.getCollection(collectionName);
 		
 		BasicDBObject obj1 = new BasicDBObject();
-		    obj1.put(deleteItemParamName,delteItemValeur);
+		obj1.put(deleteItemParamName,delteItemValeur);
+		
+		 UpdateResult _UpdateResult = collection.updateOne(query,new BasicDBObject("$pull", new BasicDBObject(arrayName, obj1))
+				 
+		);		 
+		logger.info("_UpdateResult="+_UpdateResult);
+	}
+	
+	/**
+	 * Suppression d'un item d'un proporitï¿½ array d'un doc, ï¿½ partir de plusioeurs valurs d'attribut
+	 * @param collectionName
+	 * @param query
+	 * @param arrayName
+	 * @param findItemParamName
+	 * @param findItemValeur
+	 */
+	
+	public void arrayRemoveItem(String collectionName,BasicDBObject query,String arrayName, ArrayList<String> findItemParamName,ArrayList<String>  findItemValeur) {
+		//https://stackoverflow.com/questions/17061665/mongodb-remove-item-from-array
+		logger.debug("collectionName/arrayName="+collectionName+"/"+arrayName);
+		
+		MongoCollection<Document> collection = this.database.getCollection(collectionName);		
+		BasicDBObject obj1 = new BasicDBObject();
+		//obj1.put(deleteItemParamName,delteItemValeur);
+		
+		String deleteItemParamName="";
+		String delteItemValeur="";
+		int i_i=0;
+		for (String paramName : findItemParamName) {	
+			deleteItemParamName = paramName.trim();					
+			delteItemValeur = findItemValeur.get(i_i).trim();
+			logger.debug("deleteItemParamName/delteItemValeur:"+deleteItemParamName+"/"+delteItemValeur);		
+			obj1.put(deleteItemParamName,delteItemValeur);
+			i_i++;
+		}	
+		
 		
 		 UpdateResult _UpdateResult = collection.updateOne(query,new BasicDBObject("$pull", new BasicDBObject(arrayName, obj1))
 				 
@@ -289,8 +344,9 @@ public class MongoManager {
 	}
 	
 	
+	
 	/**
-	 * Suppression d'un item d'un proporité array d'un doc
+	 * 
 	 * @param collectionName
 	 * @param query
 	 * @param arrayName
@@ -344,12 +400,10 @@ public class MongoManager {
 	}
 	
 	/**
-	 * ===> Renvoi les items d'un array filtrés ( par findItemParamName , findItemValeur) pour des ou 1 doc filtrés par filter dans une collection : collectionName
+	 * ===> Renvoi les items d'un array filtrï¿½s ( par findItemParamName , findItemValeur) pour des ou 1 doc filtrï¿½s par filter dans une collection : collectionName
 	 * @param collectionName
 	 * @param filter
 	 * @param ArrayName
-	 * @param paramName
-	 * @param valeur
 	 * @return
 	 */
 	public List<Document> arrayListITemFind(String collectionName,Bson filter, String ArrayName, String findItemParamName, String findItemValeur) {
@@ -378,10 +432,11 @@ public class MongoManager {
 	 * @param collectionName
 	 * @param filter
 	 * @param ArrayName
-	 * @param findItemParamName_findItemValeur liste des "param,valeur"
+	 * @param findItemParamName  : list des nom des clï¿½ 
+	 * @param findItemValeur : liste des nom des valeurs
 	 * @return
 	 */
-	public List<Document> arrayListITemFind(String collectionName,Bson filter, String ArrayName, ArrayList<String> findItemParamName_findItemValeur) {
+	public List<Document> arrayListITemFind(String collectionName,Bson filter, String ArrayName, ArrayList<String> findItemParamName,ArrayList<String>  findItemValeur) {
 	    
 		//System.out.println("arrayListITemFind Debut");
 		
@@ -389,25 +444,26 @@ public class MongoManager {
 		List<Document> arrayItem  = arrayListITem(collectionName,filter, ArrayName);
 		
 		boolean bParamCheck=true;
-		String paramName="";
+		//String paramName="";
 		String valeurName="";
+		int i_i;
 		
 		if (arrayItem != null) {
 			for (Document item : arrayItem) {
 				bParamCheck=true;
 				//System.out.println("fil file=[" + item.getString("file")+"]");
-				for (String paramName_Valeur : findItemParamName_findItemValeur) {						
-					paramName=paramName_Valeur.split("/")[0].trim();
-					valeurName=paramName_Valeur.split("/")[1].trim();
-					//System.out.println("paramName_Valeur1="+paramName_Valeur);
-					//System.out.println("paramName_Valeur=2["+valeurName.trim()+"]=["+item.getString(paramName)+"]");
+				i_i=0;
+				for (String paramName : findItemParamName) {	
+					paramName = paramName.trim();					
+					valeurName = findItemValeur.get(i_i).trim();
+					logger.debug("paramName_Valeur=["+paramName+"]="+valeurName+"<=>"+item.getString(paramName)+"]");
 					//System.out.println("Check="+item.getString(paramName).equals(valeurName));
 					
 					bParamCheck= bParamCheck && item.getString(paramName).equals(valeurName);
-				}
-				
+					i_i++;
+				}				
 				//System.out.println("bParamCheck:"+bParamCheck); 
-				//On ajoute le fichier trouvé dans la liste d'ITEM
+				//On ajoute le fichier trouvï¿½ dans la liste d'ITEM
 				if (bParamCheck) {
 					arrayItemFiltered.add(item);
 				}
@@ -423,7 +479,7 @@ public class MongoManager {
 	
 	
 	/**
-	 * Mise a jour de propriété (updateParamName avec la valeur updateParamValue) d'item d'array filtrér (findItemParamName, String findItemValeur) d'un document. 
+	 * Mise a jour de propriï¿½tï¿½ (updateParamName avec la valeur updateParamValue) d'item d'array filtrï¿½r (findItemParamName, String findItemValeur) d'un document. 
 	 * @param collectionName
 	 * @param filter
 	 * @param arrayName
@@ -436,17 +492,106 @@ public class MongoManager {
 		//1 : Reccuepration des item a modifier
 		List<Document> arrayItemFiltered = arrayListITemFind(collectionName, filter, arrayName, findItemParamName, findItemValeur);
 		for (Document item : arrayItemFiltered) {
-			//2 : modification de la bonne propiétyé
+			//2 : modification de la bonne propiï¿½tyï¿½
 			item.remove(updateParamName);
 			item.append(updateParamName, updateParamValue);
 			//3 : suppression de l'item dans la base
 			arrayRemoveItem2(collectionName, filter, arrayName, findItemParamName, findItemValeur);
 		}
-		//3  : ajout des item modifiés  dans la base
+		//3  : ajout des item modifiï¿½s  dans la base
 		arrayAddItem2(collectionName, filter, arrayName, arrayItemFiltered);		
 		
 	}
 	
+	
+	//M%Ethode d'affichage .. utilisation pour les aggregations
+	 Block<Document> printBlock = new Block<Document>() {
+	        @Override
+	        public void apply(final Document document) {
+	            System.out.println(document.toJson());
+	        }
+	  };
+	
+	
+	  
+	  //Mise a jour de la date UPDATE_DB_DATE par la date max dateFile, afin de pourvoir 
+	  //ulrterieurement trier par ce champs : les derniers films ajoutï¿½
+	  public void aggregationTest(String collectionName) {
+		  MongoCollection<Document> collection = database.getCollection(collectionName);
+		
+		  
+		  /* => syntax ok
+		  collection.aggregate(
+			      Arrays.asList(
+			          Aggregates.project(
+			              Projections.fields(
+			                    Projections.excludeId(),
+			                    Projections.include("original_title"),
+			                    Projections.computed(
+			                            "RICO_FICHIERX",
+			                            //new Document("$arrayElemAt", Arrays.asList("$RICO_FICHIER", 0))
+			                            new Document("$max", Arrays.asList("$RICO_FICHIER", 0))
+			                    )
+			              )
+			          )
+			      )
+			).forEach(printBlock);
+			*/		
+		  
+		  
+		  //1) Liste de tt les film avec ID zet la liste des dates RICO_FICHIER.fileDate
+			AggregateIterable<Document> aggregate = collection.aggregate(
+				  Arrays.asList(
+				          //Aggregates.match(Filters.eq("categories", "Bakery")),
+				          Aggregates.group("$id", Accumulators.max("max","$RICO_FICHIER.fileDate"))
+				  )
+				);
+		  
+			 MongoCursor<Document> cursor = aggregate.iterator();
+			 
+			  //2) On parcour tt les doc et on reccupï¿½re la date MAx ! 
+			 // Print for demo
+			 BasicDBObject query = null;
+			 BasicDBObject newDocument = null;
+			 BasicDBObject updateObj = null;
+			 Date datMax = null;
+			 for (Document dbObject : aggregate)
+			 {
+			     System.out.println(dbObject);
+			     //String  __id = dbObject.get("_id");
+			     System.out.println("ID="+dbObject.get("_id"));
+
+
+			    Integer filmRico_id=dbObject.getInteger("_id");
+				System.out.println("Value="+filmRico_id);			
+				List<Date> arrayItem = (List<Date>) dbObject.get("max");
+				System.out.println("arrayItem="+  arrayItem );
+				if (arrayItem != null &&  arrayItem.size()>0 ) {
+					 for (Date _date : arrayItem) {
+						 System.out.println("Date="+  _date );
+					 }
+					 datMax = Collections.max(arrayItem);
+					 System.out.println("DateMAX="+datMax);
+				} else {
+					Calendar calendar = Calendar.getInstance();
+					calendar.set(1900, 01, 01, 0, 0, 0);
+					datMax = calendar.getTime();
+				}
+					 
+				//3) Mise a jour de la base de donnï¿½e
+				query = new BasicDBObject();
+				query.put("id", filmRico_id);
+				newDocument = new BasicDBObject();
+				newDocument.put("UPDATE_DB_DATE", datMax);			     			
+				//newDocument.put("UPDATE_DB_DATE", listeFichier.get(i).dateFile);
+				updateObj = new BasicDBObject();
+				updateObj.put("$set", newDocument);
+				this.updateDB(collectionName,query,updateObj);
+				
+			 }
+			 			 		
+	  }
+	  
 }
 
 

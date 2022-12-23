@@ -23,6 +23,12 @@ public class Film {
 	"release_date": "1999-03-30"
 	*/	
 	
+	public Film(long id) {
+		super();
+		this.id = id;
+	}
+	
+	
 	int vote_count;
 	long id;
 	boolean video;

@@ -43,4 +43,9 @@ public class Fichier {
 		this.taille = taille;
 	}
 	
+	public String getPathEtName() {
+		String separator = System.getProperty("file.separator");
+		return path+separator +nom;
+	}
+	
 }

@@ -39,7 +39,7 @@ public class FilmRestManager {
 
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
-		//1 : Appel des RESQUEST en cours pour le serveur concerné (dans laquel sont present les vidéo)
+		//1 : Appel des RESQUEST en cours pour le serveur concerne (dans laquel sont present les video)
 		
 		String p_name = "id:125742";		
 		FilmRestManager _FilmRestManager= new FilmRestManager("localhost","3000");
@@ -90,11 +90,8 @@ public class FilmRestManager {
 	}
 	
 	/**
-	 * Eenvoi le nd de flm qui match
-	 * @param serveurHost
-	 * @param serveurPort
+	 * envoi le nd de flm qui match
 	 * @param p_name
-	 * @param p_serveur_name
 	 * @return
 	 */
 	public int getFilmsCount(String p_name ) {
@@ -121,11 +118,8 @@ public class FilmRestManager {
 	}
 	
 	/**
-	 * Eenvoi la list des flm qui match 
-	 * @param serveurHost
-	 * @param serveurPort
+	 * Eenvoi la list des flm qui match
 	 * @param p_name
-	 * @param p_serveur_name
 	 * @return
 	 */
 	public List<Film> getFilms(String p_name ) {
