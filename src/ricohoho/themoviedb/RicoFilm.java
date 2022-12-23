@@ -25,7 +25,7 @@ public class RicoFilm {
 		
         
         //Log messages using log(Level level, String msg) 
-        logger.info( "RicoFilm Java : Lancement"); 
+        logger.info( "RicoFilm Java : Lancement"); //
 		
 		String pathFilm = "DEFAUT_PATH";
 		boolean addDb=false;
