@@ -174,6 +174,8 @@ public class MongoManager {
 	 * @return Liste des documents 
 	 */
 	public List<Document>  selectDBDoc(String collectionName, BasicDBObject whereQuery) {
+		logger.info("collectionName="+collectionName);
+		logger.info("whereQuery="+whereQuery);
 		List<Document> arrayItem = null; 		
 		MongoCollection<Document> collection = this.database.getCollection(collectionName);		
 		List<Document> documentsRico = (List<Document>) collection.find(whereQuery).into(new ArrayList<Document>());		

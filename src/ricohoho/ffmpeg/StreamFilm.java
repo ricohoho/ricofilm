@@ -40,13 +40,17 @@ public class StreamFilm {
         this.InfoFilmSstreams = new ArrayList<>();
         this.info="";
         LOGGER.info( "Fichier : " +fichierFilm.getAbsolutePath());
-        FFprobeResult result = FFprobe.atPath()
-                .setShowStreams(true)
-                .setInput(fichierFilm.getAbsolutePath())
-                .setLogLevel(LogLevel.DEBUG)
-                .setFormatParser(formatParser)
-                .execute();
-
+        FFprobeResult result = null;
+        try {
+            result = FFprobe.atPath()
+                    .setShowStreams(true)
+                    .setInput(fichierFilm.getAbsolutePath())
+                    .setLogLevel(LogLevel.DEBUG)
+                    .setFormatParser(formatParser)
+                    .execute();
+        } catch (Exception e) {
+            LOGGER.info( "Exception getInformationsFile"+e.toString() );
+        }
         if (result !=null) {
             LOGGER.info( "result ! nulll");
             for (Stream stream : result.getStreams()) {
@@ -77,7 +81,7 @@ public class StreamFilm {
                 info1Film.put("CodecLongName",stream.getCodecLongName());
                 info1Film.put("TimeBase",stream.getTimeBase());
                 info1Film.put("Profile",stream.getProfile());
-                info1Film.put("tag.BPS",stream.getTag("BPS"));
+                info1Film.put("tag-BPS",stream.getTag("BPS"));
                 info1Film.put("tag-DURATION",stream.getTag("DURATION"));
                 info1Film.put("tag-NUMBER_OF_FRAMES",stream.getTag("NUMBER_OF_FRAMES"));
                 info1Film.put("tag-NUMBER_OF_BYTES",stream.getTag("NUMBER_OF_BYTES"));
