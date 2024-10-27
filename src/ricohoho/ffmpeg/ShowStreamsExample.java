@@ -1,4 +1,4 @@
-package ricohoho.ffmpeg;
+package ricohoho.ffmpeg; 
 
 import com.github.kokorin.jaffree.LogLevel;
 import com.github.kokorin.jaffree.ffprobe.*;
