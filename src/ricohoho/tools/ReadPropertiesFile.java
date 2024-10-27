@@ -1,4 +1,5 @@
 package ricohoho.tools;
+//2024/10/27 Correction  Git
 import java.io.*;
 import java.util.*;
 

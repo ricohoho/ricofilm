@@ -1,4 +1,5 @@
 package ricohoho.tools;
+//2024/10/27 Correction  Git
 
 import com.jcraft.jsch.*;
 
@@ -33,11 +34,11 @@ public class FileTools {
     
     /**
      * 
-     * @param SFTPHOST
-     * @param SFTPPORT
-     * @param SFTPUSER
-     * @param SFTPPASS
-     * @param SFTPWORKINGDIR
+     * param SFTPHOST
+     * param SFTPPORT
+     * param SFTPUSER
+     * param SFTPPASS
+     * param SFTPWORKINGDIR
      */
     public FileTools(String _SFTPHOST, int _SFTPPORT ,String _SFTPUSER ,String _SFTPPASS ,String _SFTPWORKINGDIR ) {
     	logger = LoggerFactory.getLogger(FileTools.class);		
@@ -141,8 +142,10 @@ public class FileTools {
 	        logger.info("sftp channel opened and connected.");
 	        channelSftp = (ChannelSftp) channel;
 	        channelSftp.cd(SFTPWORKINGDIR);
+			logger.info("sftp channel cd : "+SFTPWORKINGDIR);
 	        File f = new File(fileName);
-	        channelSftp.put(new FileInputStream(f), f.getName());	        
+			logger.info("sftp channel new File file : "+fileName);
+	        channelSftp.put(new FileInputStream(f), f.getName());
 	        logger.info("---- sftp  Fin");
 	    } catch (Exception ex) {
 	    	logger.error("Exception found while tranfer the response."+ex);

@@ -1,4 +1,5 @@
 package ricohoho.tools;
+//2024/10/27 Correction  Git
 
 
 import com.mongodb.DBObject;
@@ -15,7 +16,7 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-public class CorrectionResumeEnFR { 
+public class CorrectionResumeEnFR {
     public static void main(String[] args) throws ParseException {
         // Connexion à la base de données MongoDB
         //String uri = "mongodb://localhost:27017";  // Remplace par ton URI MongoDB si nécessaire
@@ -65,14 +66,14 @@ public class CorrectionResumeEnFR {
                 System.out.println("Processing film ID: " + filmId);
 
                 //if (filmId==714339) {
-                    //recherche du nouvle Overview
-                    //JSONObject json;
-                    DBObject _DBObject;
-                    TheMovieDb theMovieDB = new TheMovieDb();
-                    _DBObject = theMovieDB.getFilmTheMovieDbDetail(filmId);
-                    // Mise  jour du champ "overview" avec la valeur "New"
-                    overview  = (String) _DBObject.get("overview");
-                    collection.updateOne(Filters.eq("id", filmId), Updates.set("overview", overview ));
+                //recherche du nouvle Overview
+                //JSONObject json;
+                DBObject _DBObject;
+                TheMovieDb theMovieDB = new TheMovieDb();
+                _DBObject = theMovieDB.getFilmTheMovieDbDetail(filmId);
+                // Mise  jour du champ "overview" avec la valeur "New"
+                overview  = (String) _DBObject.get("overview");
+                collection.updateOne(Filters.eq("id", filmId), Updates.set("overview", overview ));
                 //}
                 System.out.println("Updated film with ID: " + filmId);
             }
@@ -80,7 +81,7 @@ public class CorrectionResumeEnFR {
             cursor.close();
         }
 
-        // Fermeture de la connexion MongoDB
+        // Fermeture de la connexion MongoDB x
         mongoClient.close();
     }
 
