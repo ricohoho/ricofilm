@@ -1,4 +1,6 @@
 logs/*
 bin/*/*/*
 target/*/*/
+ffmpeg.exe
+ffprobe.exe
 .gitignore
