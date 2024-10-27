@@ -1,4 +1,4 @@
-package ricohoho.mongo;
+package ricohoho.mongo; 
 
 import com.mongodb.MongoClient;
 import com.mongodb.client.MongoDatabase;
