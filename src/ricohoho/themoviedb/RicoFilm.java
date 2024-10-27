@@ -1,4 +1,5 @@
 package ricohoho.themoviedb;
+//2024/10/24 Correction bloccage Git
 
 import java.io.IOException;
 
@@ -28,8 +29,8 @@ public class RicoFilm {
         logger.info( "RicoFilm Java : Lancement"); //
 		
 		String pathFilm = "DEFAUT_PATH";
-		boolean addDb=false;
-		boolean downloadImagePoster = false;
+		boolean addDb;
+		boolean downloadImagePoster;
 		String serveurName="DEFAUT_SERVEUR_NAME";
 		int path_FILM_NIV_SSDOSSIER=0;
 		String dbMongoHost="";

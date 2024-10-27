@@ -1,4 +1,5 @@
 package ricohoho.themoviedb;
+//2024/10/24 Correction bloccage Git
 
 import org.json.simple.JSONObject;
 
@@ -24,7 +25,7 @@ public class Request {
 	
 	String _id="";
 	String username="";
-	String id="";
+	int id=0;
 	String title="";
 	String serveur_name="";
 	String path="";
@@ -47,7 +48,7 @@ public class Request {
 	 * @param size
 	 * @param status
 	 */
-	public Request(String _id, String username, String  id, String title, String serveur_name, String path, String file,
+	public Request(String _id, String username, int  id, String title, String serveur_name, String path, String file,
 			String size, String status) {
 		super();
 		this._id = _id;
@@ -72,6 +73,7 @@ public class Request {
 		 json.put("serveur_name", this.getServeur_name());
 		 json.put("path", this.getPath());
 		 json.put("size", this.getSize());
+		 json.put("file", this.getFile());
 		 json.put("status", this.getStatus());
 		
 		return json;
@@ -99,10 +101,10 @@ public class Request {
 	public void setUsername(String username) {
 		this.username = username;
 	}
-	public String  getId() {
+	public int  getId() {
 		return id;
 	}
-	public void setId(String  id) {
+	public void setId(int  id) {
 		this.id = id;
 	}
 	public String getTitle() {

@@ -1,4 +1,5 @@
 package ricohoho.themoviedb;
+//2024/10/24 Correction bloccage Git
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -69,7 +70,7 @@ public class RequestManager {
 		String sReturn= UrlManager.getUrl( sURL);
 		logger.info("retour http :"+sReturn);
 		//JSONArray ja = new JSONArray();
-		
+
 		 JSONParser parser = new JSONParser();
 		 Object obj;
 		 try {
@@ -100,7 +101,8 @@ public class RequestManager {
             for(int i=0; i<requests.size(); i++){
                 JSONObject objRequest =(JSONObject)requests.get(i);// films.getJSONObject(i);
                 //System.out.println("Film "+i);
-                String id =(String) objRequest.get("id");
+                //String id =(String) objRequest.get("id");
+				String id = objRequest.get("id").toString();
                 String username = (String)objRequest.get("username");
                 String title = (String)objRequest.get("title");
                 String serveur_name=(String)objRequest.get("serveur_name");

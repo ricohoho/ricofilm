@@ -1,4 +1,5 @@
 package ricohoho.themoviedb;
+//2024/10/24 Correction bloccage Git
 
 import java.io.BufferedReader;
 import java.io.FileOutputStream;
@@ -16,6 +17,9 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.HttpEntity;
+import org.apache.http.util.EntityUtils;
+
 import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,12 +91,55 @@ public class UrlManager {
 		    HttpResponse response = httpClient.execute(request);
 		    logger.debug("sendJson : fin");
 		    // handle response here...
-		}catch (Exception ex) {
+		} catch (Exception ex) {
 		    // handle exception here
 			logger.error("Exception:"+ex);			
 		} finally {
 		    httpClient.getConnectionManager().shutdown();
 		}		
+	}
+
+	/**
+	 * Variante avec envoi dans le BODY
+	 * @param url
+	 * @param json
+	 */
+	public static void sendJson2(String url, JSONObject json ) {
+
+		Logger logger = LoggerFactory.getLogger(UrlManager.class);
+		logger.debug( "sendJson : debut");
+		HttpClient httpClient = new DefaultHttpClient();
+
+
+		try {
+			HttpPost request = new HttpPost(url);
+			request.setHeader("Content-Type", "application/json");
+			request.addHeader("Accept","application/json");
+
+			StringEntity params = new StringEntity(json.toString());
+			request.setEntity(params);
+
+			HttpResponse response = httpClient.execute(request);
+			logger.debug("sendJson : fin");
+			// handle response here...
+
+			// Récupération de l'entité de la réponse
+			HttpEntity entity = response.getEntity();
+
+			// Affichage du statut de la réponse
+			System.out.println("Statut de la réponse : " + response.getStatusLine());
+
+			// Affichage du contenu de la réponse
+			if (entity != null) {
+				System.out.println("Contenu de la réponse : " + EntityUtils.toString(entity));
+			}
+
+		} catch (Exception ex) {
+			// handle exception here
+			logger.error("Exception:"+ex);
+		} finally {
+			httpClient.getConnectionManager().shutdown();
+		}
 	}
 
 	/**
@@ -123,5 +170,32 @@ public class UrlManager {
 		String sReturn= getUrl( sURL);
 		logger.info("------------------------------");
 		logger.info(""+sReturn);
-	}		
+
+		new UrlManager().testSetRequest();
+
+
+	}
+
+	// test de set REQUEST de meth via WebService
+	public void testSetRequest() {
+		//String url = "http://davic.mkdh.fr:3000/request/edit";
+		String url="http://localhost:3000/request/edit";
+		String _id="";
+		String username="hoho";
+		int  id=871547;//"481848";
+		String title="L'appel de la forêt";
+		String serveur_name="NOS-RICO";
+		String path="/volume1/video/Films/2020/202003/" ;
+		String file="xxericxx";
+		String size="5912711500.0";
+		String status="AFAIRE";
+		Request request = new Request(_id,username,id,title,serveur_name,path,file,size,status);
+		try {
+			System.out.println("JSON request ="+request.getJson());
+			this.sendJson2(url, request.getJson());
+		} catch (Exception ex ) {
+			System.err.println("Exception ;  :"+ex);
+		}
+
+	}
 }
