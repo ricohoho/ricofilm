@@ -1,6 +1,7 @@
 logs/*
 bin/*/*/*
 target/*/*/
+.idea/*/*
 ffmpeg.exe
 ffprobe.exe
 .gitignore
