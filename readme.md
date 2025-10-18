@@ -20,10 +20,10 @@ Installation de Mvn
 RicoFilm2-0.0.1-SNAPSHOT-jar-with-dependencies.jar
 ` mvn package`
 
-**execution je l'application : (en maven sans jar) **
+**execution je l'application : (en maven sans jar)**
 ` mvn exec:java -Dexec.mainClass="ricohoho.themoviedb.RicoFilm"`
 
-**execution je l'application : (avec le jar jar) **
+**execution je l'application : (avec le jar jar)**
 ` java -jar Ricofilm action path`
 **LEs paramètres :** 
 patch : /home/efassel/ricofilm/ricofilm/dir-films/
