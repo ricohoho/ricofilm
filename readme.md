@@ -1,9 +1,20 @@
-# Informaiton 
-Ce programme permet de 
-- parse un dossier de ficfier de films 
-- asocie les bons films sur la plateforme theMovieDb et reccuperer les infos detaillées du film
+# Informations : 
+
+Ricofilm permet de mettre en commun des dossiers de fichiers de film hébergés sur des nas différent et de remonter les film dans une base centralisée.
+Les films de cette base sont exposés depuis un site Web.
+Ce site web permet de consulter les films mais aussi de faire une demande de film issue d'un nas en particulier (une request) le film sera envoyé sur le serveur centralisé et dispo en streaming.
+
+Ce programme : 
+- Parse un dossier de fichier de films 
+- Associe un film avec l'aide de la plateforme theMovieDb et reccuperer les infos detaillées du film
 - Insere dans la base mongoDb les infos du films dans la collection films
 - Ajoute à ces infos les informations du fichier (codec vidéo/son, sous titre .. ), extraction réalisée avec ffmpeg
+- Envoi les film sur le serveur centralisé le film en de mande de streaming (request)
+
+ # Architecture générale : 
+
+
+![Architecture générale](src/resources/ricofilm-archi-generale.png)
 
 # installation 
 Installer OpenJDK 8
