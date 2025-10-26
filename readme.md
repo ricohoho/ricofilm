@@ -32,6 +32,8 @@ Installation de Mvn
 # fichier de configuraiton 
 `init.properties`
 
+renommer init.properties_model et ajuster les valeurs
+
 > #======== ACTION POSIBLE =========
 > 
 > ACTION1=DOWNLOAD_IMAGE
