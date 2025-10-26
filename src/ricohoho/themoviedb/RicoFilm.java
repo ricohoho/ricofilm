@@ -127,6 +127,7 @@ public class RicoFilm {
 				boolean AcvecSsDossier=true;
 				theMovieDb.traiterDossierSupprimeFilmDBFichierAbsent(serveurName, pathFilm, addDb,AcvecSsDossier);
 			}
+			//theMovieDb.closeMongoClient();
 			
 		} else if (action.equals("SUPPRIME_FILM")) {			
 			addDb=true;

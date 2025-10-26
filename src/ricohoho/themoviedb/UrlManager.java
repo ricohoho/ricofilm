@@ -10,7 +10,6 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -88,7 +87,7 @@ public class UrlManager {
 		    request.addHeader("content-type", "application/json");
 		    request.addHeader("Accept","application/json");
 		    request.setEntity(params);
-		    HttpResponse response = httpClient.execute(request);
+		    //HttpResponse response = httpClient.execute(request);
 		    logger.debug("sendJson : fin");
 		    // handle response here...
 		} catch (Exception ex) {

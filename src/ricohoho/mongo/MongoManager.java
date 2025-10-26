@@ -1,8 +1,5 @@
 package ricohoho.mongo; 
 
-import static com.mongodb.client.model.Filters.eq;
-import static com.mongodb.client.model.Updates.push;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -12,39 +9,29 @@ import java.util.List;
 
 import org.bson.Document;
 import org.bson.conversions.Bson;
-import org.bson.types.ObjectId;
-import org.json.simple.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.mongodb.client.MongoClients;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.MongoCollection;
+
 import com.mongodb.BasicDBObject;
 import com.mongodb.Block;
-import com.mongodb.DB;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
-import com.mongodb.MongoException;
-import com.mongodb.WriteResult;
 import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.FindIterable;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
-import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 
-import ricohoho.themoviedb.RicoFilm;
-
-import com.mongodb.DBCursor;
 
 public class MongoManager {
 	
-	//			info complemantaire 
+	//info complemantaire 
 	//REchere des film avec un critere sans une array par exmple rico_film.path="xx"
 	//https://docs.mongodb.com/v4.0/tutorial/query-array-of-documents/
 	//db.getCollection('films').find( { 'RICO_FICHIER.path': { $eq:"C:\\tempo\\test\\" } })
@@ -52,41 +39,26 @@ public class MongoManager {
 	//findIterable = collection.find(eq("RICO_FICHIER.path", "C:\\tempo\\test\\"));
 
 	
-	
-	//MongoClient mongo =null;
-	DB db = null;
-	//MongoClient mongoClient=null;
-	MongoDatabase database = null;
-	Logger logger=null;
+	//DB db = null;
+	public MongoDatabase database = null;
+	private static final Logger logger = LoggerFactory.getLogger(MongoManager.class);
+	public MongoClient mongoClient = null;
 
-	/**
-	 * 
-	 * @param dbMongoHost
-	 * @param dbMongoPort
-	 * @param dbMongoName
-	 */
+	
 	public MongoManager(String dbMongoHost,int dbMongoPort,String dbMongoName) {
-		 logger = LoggerFactory.getLogger(MongoManager.class);
-		 MongoClient mongo = new MongoClient(dbMongoHost, dbMongoPort);
-		 this.db = mongo.getDB(dbMongoName);				
-		 MongoClient mongoClient = new MongoClient();
-		 this.database = mongoClient.getDatabase(dbMongoName);
+	 try (
+			MongoClient mongoClient = MongoClients.create("mongodb://"+dbMongoHost+":"+dbMongoPort)) {
+            //MongoDatabase database = mongoClient.getDatabase("ricofilm");
+			this.database = mongoClient.getDatabase("ricofilm");
+			this.mongoClient = mongoClient;
+		} catch (Exception e) {					
+			e.printStackTrace();
+		}	
 	}
-	
-	/**
-	 * 
-	 * @param dbMongoHost
-	 * @param dbMongoPort
-	 * @param dbMongoName
-	 * @param userName
-	 * @param password
-	 */
-	public MongoManager(String dbMongoHost,int dbMongoPort,String dbMongoName, String userName, String password) {		
-		 logger = LoggerFactory.getLogger(MongoManager.class);
-		//mongo = new MongoClient(dbMongoHost, dbMongoPort);
-		//this.db = mongo.getDB(dbMongoName);		
-	
-		
+
+	 /* 
+	public void  MongoManagerX(String dbMongoHost,int dbMongoPort,String dbMongoName, String userName, String password) {		
+		logger = LoggerFactory.getLogger(MongoManager.class);
 		String userPassword="";
 		if (!userName.equals("")) {
 			userPassword=userName+":"+password+"@";
@@ -103,14 +75,33 @@ public class MongoManager {
 		this.db= mongoClient.getDB(dbMongoName);
 		this.database = mongoClient.getDatabase(dbMongoName);
 	}
-	
+	*/
+
+	public MongoManager(String dbMongoHost, int dbMongoPort, String dbMongoName, String userName, String password) {
+        try {
+            String userPassword = "";
+            if (!userName.isEmpty()) {
+                userPassword = userName + ":" + password + "@";
+            }
+            String uriDbCnx = "mongodb://" + userPassword + dbMongoHost + ":" + dbMongoPort + "/" + dbMongoName;
+            System.out.println("uriDbCnx = " + uriDbCnx);
+
+            MongoClient mongoClient = MongoClients.create(uriDbCnx);
+            this.database = mongoClient.getDatabase(dbMongoName);
+			this.mongoClient = mongoClient;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
 	
 	/**
 	 * Insertion d'un document
 	 * @param collectionName
 	 * @param _DBObject
 	 */
-	public void insertJSON(String collectionName,DBObject  _DBObject) {
+	//deprecated DB
+	/*
+	public void insertJSON_XXXXX(String collectionName,DBObject  _DBObject) {
 		 try {
 			 DBCollection table =  this.db.getCollection(collectionName);
 			 table.insert(_DBObject);
@@ -122,9 +113,19 @@ public class MongoManager {
 			logger.error("Exception "+e.toString());
 		 }
 		
-	}
+	}*/
 	
-	
+	//20241019 ERic : nouvelle version avec Document
+	public void insertJSON(String collectionName, Document document) {
+    try {
+        MongoCollection<Document> collection = this.database.getCollection(collectionName);
+        collection.insertOne(document);
+        logger.debug("Insert Done");
+    } catch (Exception e) {
+        e.printStackTrace();
+        logger.error("Exception " + e.toString());
+    }
+}
 
 	
 	
@@ -153,6 +154,7 @@ public class MongoManager {
 	}
 	
 	//deprecated !!! DB
+	/*
 	public int selectDB(String collectionName, BasicDBObject whereQuery ,BasicDBObject fields) {
 		//ef modif db par database
 		    		    		    		    
@@ -166,61 +168,80 @@ public class MongoManager {
 		    
 		    return i_i;
 	}
-	
+	*/
+	//20251019 ERic : nouvelle version avec Document
+	public int selectDB(String collectionName, Document whereQuery, Document fields) {
+
+ 	if (database == null) throw new IllegalStateException("database is null");
+    if (collectionName == null) throw new IllegalArgumentException("collectionName is null");
+    if (whereQuery == null) throw new IllegalArgumentException("whereQuery is null");
+    if (fields == null) throw new IllegalArgumentException("fields is null");
+    	MongoCollection<Document> collection = this.database.getCollection(collectionName);
+    	FindIterable<Document> cursor = collection.find(whereQuery).projection(fields);
+    	int count = 0;
+    	for (Document doc : cursor) {
+       	 	logger.debug(doc.toJson());
+			count++;
+    	}
+    	return count;
+}
+
 	/**
 	 * Query de document
 	 * @param collectionName
 	 * @param whereQuery
 	 * @return Liste des documents 
 	 */
-	public List<Document>  selectDBDoc(String collectionName, BasicDBObject whereQuery) {
+	public List<Document>  selectDBDoc(String collectionName, Document whereQuery) {
 		logger.info("collectionName="+collectionName);
 		logger.info("whereQuery="+whereQuery);
-		List<Document> arrayItem = null; 		
+		//List<Document> arrayItem = null; 		
 		MongoCollection<Document> collection = this.database.getCollection(collectionName);		
 		List<Document> documentsRico = (List<Document>) collection.find(whereQuery).into(new ArrayList<Document>());		
 		return documentsRico;
 	}
 	
 	
-	/**
-	 * Mise a jour documents
-	 * @param collectionName
-	 * @param query
-	 * @param updateObj
-	 */
+	/*
 	public WriteResult updateDB(String collectionName,BasicDBObject query, BasicDBObject updateObj) {
 		DBCollection table = (DBCollection) this.db.getCollection(collectionName);
 		com.mongodb.WriteResult wr = table.update(query, updateObj);
 		logger.info("deleteDB() Resultat de l' update, nb de doc : "+wr.getN());
 		return wr;		
 	}
+	*/
+	/*
+	public UpdateResult updateDB_old(String collectionName, Document query, Document updateObj) {
+    	MongoCollection<Document> collection = this.database.getCollection(collectionName);
+    	// L'opération moderne d'update nécessite l'utilisation de $set ou autre opérateur
+    	Document updateOperation = new Document("$set", updateObj);
+    	UpdateResult result = collection.updateMany(query, updateOperation);
+    	logger.info("updateDB() Résultat de l'update, nb de doc : " + result.getModifiedCount());
+    	return result;
+	}*/
+
+	public UpdateResult updateDB(String collectionName, Document query, Document updateOperation) {
+    	MongoCollection<Document> collection = this.database.getCollection(collectionName);
+    	UpdateResult result = collection.updateMany(query, updateOperation);
+    	logger.info("updateDB() Résultat de l'update, nb de doc : " + result.getModifiedCount());
+    	return result;
+	}
 	
 	/*
-	public WriteResult updateDB_BSON(String collectionName,BasicDBObject query, BasicDBObject updateObj) {
-		
-		MongoCollection<Document> collection = database.getCollection(collectionName);		    
-		filter = eq("name", "Sundar");
-		query = combine(set("age", 23), set("gender", "Male"),
-				currentDate("lastModified"));
-		UpdateResult result = collection.updateOne(filter, query);
-		System.out.println("deleteDB() Resultat de l' update, nb de doc : "+wr.getN());
-		return wr;		
-	}
-	*/
-	
-	/**
-	 * Delete de documents 
-	 * @param collectionName
-	 * @param query
-	 * @return
-	 */
 	public WriteResult deleteDB(String collectionName,BasicDBObject query) {		
 		DBCollection table =  this.db.getCollection(collectionName);
 		com.mongodb.WriteResult wr = table.remove(query);
 		logger.info("deleteDB() Resultat de la suppression, nb de doc : "+wr.getN());
 		return wr;		
 	}
+	*/
+	//20241019 ERic : nouvelle version avec Document
+	public DeleteResult deleteDB(String collectionName, Document query) {
+    	MongoCollection<Document> collection = this.database.getCollection(collectionName);
+    	DeleteResult result = collection.deleteMany(query);
+    	logger.info("deleteDB() Résultat de la suppression, nb de doc : " + result.getDeletedCount());
+    	return result;
+}
 	
 	
 	
@@ -241,7 +262,7 @@ public class MongoManager {
 	 * @param arrayName
 	 * @param list
 	 */
-	public void arrayAddItem(String collectionName,Bson filter,String arrayName,List<BasicDBObject> list) {
+	public void arrayAddItem(String collectionName,Bson filter,String arrayName,List<Document> list) {
 		
 		//==init exemple ===
 		/*
@@ -269,7 +290,7 @@ public class MongoManager {
 	    //collection.updateOne(filter, change);
 	    
 		//MEthode 2 ==
-	    UpdateResult updateOne = collection.updateOne(filter, Updates.pushEach(arrayName, list));
+	    collection.updateOne(filter, Updates.pushEach(arrayName, list));
 	    
 	}
 	
@@ -297,7 +318,7 @@ public class MongoManager {
 	 * @param arrayName : Nom de la liste
 	 * @param deleteItemParamName/deleteItemParamName  : IDentification del'item de la liste � supprimer
 	 */
-	public void arrayRemoveItem(String collectionName,BasicDBObject query,String arrayName, String deleteItemParamName, String delteItemValeur) {
+	public void arrayRemoveItem(String collectionName,Document query,String arrayName, String deleteItemParamName, String delteItemValeur) {
 		//https://stackoverflow.com/questions/17061665/mongodb-remove-item-from-array
 		MongoCollection<Document> collection = this.database.getCollection(collectionName);
 		
@@ -319,7 +340,7 @@ public class MongoManager {
 	 * @param findItemValeur
 	 */
 	
-	public void arrayRemoveItem(String collectionName,BasicDBObject query,String arrayName, ArrayList<String> findItemParamName,ArrayList<String>  findItemValeur) {
+	public void arrayRemoveItem(String collectionName,Document query,String arrayName, ArrayList<String> findItemParamName,ArrayList<String>  findItemValeur) {
 		//https://stackoverflow.com/questions/17061665/mongodb-remove-item-from-array
 		logger.debug("collectionName/arrayName="+collectionName+"/"+arrayName);
 		
@@ -375,26 +396,23 @@ public class MongoManager {
  * @param ArrayName
  * @return
  */
-	public List<Document>   arrayListITem(String collectionName,Bson filter, String ArrayName) {
+	public List<Document> arrayListITem(String collectionName,Bson filter, String ArrayName) {
 		
 		List<Document> arrayItem = null; 
-		//System.out.println("arrayListItem Debut");
-		
-		MongoCollection<Document> collection = this.database.getCollection(collectionName);
-		
-		List<Document> documentsRico = (List<Document>) collection.find(filter).into(new ArrayList<Document>());
-		
+		//System.out.println("arrayListItem Debut");		
+		MongoCollection<Document> collection = this.database.getCollection(collectionName);	
+		List<Document> documentsRico = (List<Document>) collection.find(filter).into(new ArrayList<Document>());	
 		
 		//System.out.println("documentsRico size "+documentsRico.size());
 		for (Document docRico : documentsRico) {
-			String value=docRico.getString("value");
+			//String value=docRico.getString("value");
 			//System.out.println("Value="+value);			
 			arrayItem = (List<Document>) docRico.get(ArrayName);
-			/*
+			
 			for (Document item : arrayItem) {
 				System.out.println("arrayListITem : menu onclick = " + item.getString("onclick"));
 			}
-			*/
+			
 		}
 		//System.out.println("arrayListItem Fin");
 		
@@ -549,7 +567,7 @@ public class MongoManager {
 				  )
 				);
 		  
-			 MongoCursor<Document> cursor = aggregate.iterator();
+			 //MongoCursor<Document> cursor = aggregate.iterator();
 			 
 			  //2) On parcour tt les doc et on reccup�re la date MAx ! 
 			 // Print for demo
@@ -588,10 +606,16 @@ public class MongoManager {
 				//newDocument.put("UPDATE_DB_DATE", listeFichier.get(i).dateFile);
 				updateObj = new BasicDBObject();
 				updateObj.put("$set", newDocument);
-				this.updateDB(collectionName,query,updateObj);
+				Document queryDoc = new Document(query.toMap());
+				Document updateObjDoc = new Document(updateObj.toMap());
+				this.updateDB(collectionName,queryDoc,updateObjDoc);
 				
 			 }
 			 			 		
+	  }
+
+	  public void close() {
+		this.mongoClient.close();
 	  }
 	  
 }

@@ -90,9 +90,9 @@ RicoFilm2-0.0.1-SNAPSHOT-jar-with-dependencies.jar
 
 **execution je l'application : (en maven sans jar)**
 
-` mvn exec:java -Dexec.mainClass="ricohoho.themoviedb.RicoFilm"`
+` mvn exec:java -Dexec.mainClass="ricohoho.themoviedb.RicoFilm"  -Dexec.args="AJOUT_FILM_SANS_IMAGE"`
 
-**execution je l'application : (avec le jar jar)**
+**execution de l'application : (avec le jar jar)**
 
 ` java -jar Ricofilm action path`
 

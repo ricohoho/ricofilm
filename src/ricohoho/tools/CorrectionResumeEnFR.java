@@ -2,9 +2,7 @@ package ricohoho.tools;
 //2024/10/27 Correction  Git
 
 
-import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientURI;
+
 import com.mongodb.client.*;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Updates;
@@ -15,6 +13,7 @@ import ricohoho.themoviedb.TheMovieDb;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
+import org.bson.Document;
 
 public class CorrectionResumeEnFR {
     public static void main(String[] args) throws ParseException {
@@ -33,14 +32,8 @@ public class CorrectionResumeEnFR {
         }
 
         String uriDbCnx = "mongodb://"+userPassword+dbMongoHost+":"+dbMongoPort+"/"+dbMongoName ;
-        com.mongodb.MongoClient mongoClient = new MongoClient(
-                new MongoClientURI(uriDbCnx)
-        );
-
-        /*
-        com.mongodb.MongoClient mongoClient = new com.mongodb.MongoClient("localhost", 27017);
-        // Connexion à la base de données et à la collection
-         */
+        System.out.println("uriDbCnx = " + uriDbCnx);
+        MongoClient mongoClient = MongoClients.create(uriDbCnx);
         MongoDatabase database = mongoClient.getDatabase("ricofilm"); // Remplace par le nom de ta base de données
         MongoCollection<Document> collection = database.getCollection("films");
 
@@ -68,7 +61,7 @@ public class CorrectionResumeEnFR {
                 //if (filmId==714339) {
                 //recherche du nouvle Overview
                 //JSONObject json;
-                DBObject _DBObject;
+                Document _DBObject;
                 TheMovieDb theMovieDB = new TheMovieDb();
                 _DBObject = theMovieDB.getFilmTheMovieDbDetail(filmId);
                 // Mise  jour du champ "overview" avec la valeur "New"

@@ -7,14 +7,12 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
+import com.mongodb.DBObject;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
-import com.mongodb.DBObject;
-import com.mongodb.util.JSON;
+
 
 import ricohoho.themoviedb.LogText;
 
@@ -78,19 +76,21 @@ public class TestMongoManager {
 	 */	
 	static void select(MongoManager mongoManager) {
 		String collectionName="films";
-		BasicDBObject query = new BasicDBObject();
+		Document query = new Document();
     	//query.put("id", 125742);
     	query.put("RICO_FICHIER.serveur_name", "davic.mkdh.fr");
     	//exemple d'utilisation d'un REGEX de recherhe : tt les ficl auant un path like '/streaming/films/%/
     	//reqete RobetMongo : db.getCollection('films').find({"RICO_FICHIER.path":{'$regex' : '/streaming/films/.+/', '$options' : 'i'}})
     	//Exemple : https://avaldes.com/mongodb-java-using-find-and-query-operations-example-tutorial/
-    	query.put("RICO_FICHIER.path", new BasicDBObject("$regex","/streaming/films/.+/"));
+    	query.put("RICO_FICHIER.path", new Document("$regex","/streaming/films/.+/"));
 
 		//Bson filter = eq("id", 256316);
 		//query.put("id", new BasicDBObject("$regex","/streaming/films/.+/"));
     	
-    	BasicDBObject fields = new BasicDBObject();  
+    	Document fields = new Document();  
 	    fields.put("original_title", "");
+
+		
 	    List<Document> arrayItem = mongoManager.selectDBDoc( collectionName,  query ) ;
 	    //int nb = mongoManager.selectDB( collectionName,  query , fields) ;
 	    System.out.println("Select : "+arrayItem.size());
@@ -109,7 +109,7 @@ public class TestMongoManager {
 		
 		System.out.println(" debut removeDBArray");
 		String collectionName="films";
-		BasicDBObject query = new BasicDBObject();
+		Document query = new Document();
     	query.put("id", "file2");
 		String arrayName="menuitem";
 		
@@ -123,7 +123,7 @@ public class TestMongoManager {
 	static void  removeDBArray2(MongoManager mongoManager) {	
 		System.out.println(" debut removeDBArray2 : test de suppression d'item de array de film");
 		String collectionName="films_test";
-		BasicDBObject query = new BasicDBObject();
+		Document query = new Document();
     	query.put("id", 256316);
 		String arrayName="RICO_FICHIER";
 		
@@ -191,15 +191,15 @@ public class TestMongoManager {
 		String arrayName  = "menuitem";
 		Bson filter = eq("id", "file2");
 		
-	    BasicDBObject obj1 = new BasicDBObject();
+	    Document obj1 = new Document();
 	    obj1.put("value","X3");
 	    obj1.put("onclick", "one");
 
-	    BasicDBObject obj2 = new BasicDBObject();
+	    Document obj2 = new Document();
 	    obj2.put("value","X4");
 	    obj2.put("onclick", "two");
 
-	    List<BasicDBObject> list = new ArrayList<>();
+	    List<Document> list = new ArrayList<>();
 	    list.add(obj1); 
 	    list.add(obj2); 
 		
@@ -283,17 +283,18 @@ public class TestMongoManager {
 	 * simple update
 	 */
 	static void  update(MongoManager mongoManager) {
-		BasicDBObject query = new BasicDBObject();
+		Document query = new Document();
 	    	query.put("id", "file2");
-	    	BasicDBObject newDocument = new BasicDBObject();
+	    	Document newDocument = new Document();
 	    	
-	    	BasicDBObject fields = new BasicDBObject();  
+	    	Document fields = new Document();  
 	    	fields.put("id", 1);
+
    		    int i_nb_matchBD= mongoManager.selectDB("films", query, fields);
    		    System.out.println("i_nb_matchBD"+i_nb_matchBD);
 	    	
 	    	newDocument.put( "value" , "FileX");
-			BasicDBObject updateObj = new BasicDBObject();
+			Document updateObj = new Document();
 			updateObj.put("$set", newDocument);
 			mongoManager.updateDB("films",query,updateObj);
 			System.out.println("Fun Update");
@@ -314,11 +315,12 @@ public class TestMongoManager {
 				"    ]\r\n" + 
 				"}";
 			
-		DBObject obj=null;
+		Document obj=null;
 		
 		try {
+
 			
-			obj = (DBObject) JSON.parse(sJSON);
+			obj = Document.parse(sJSON);
 			System.out.println(obj);
                                                 	         
 		} catch (Exception e) {
@@ -327,7 +329,7 @@ public class TestMongoManager {
 		}
 		
 
-		
+
        	mongoManager.insertJSON("films",obj);
 	}
 }

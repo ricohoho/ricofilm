@@ -23,6 +23,7 @@ import org.bson.BsonArray;
 import org.bson.BsonDocument;
 import org.bson.BsonValue;
 import org.bson.Document;
+import org.bson.codecs.configuration.CodecRegistry;
 import org.bson.conversions.Bson;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -33,10 +34,6 @@ import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.mongodb.BasicDBObject;
-import com.mongodb.DBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.util.JSON;
 
 
 import ricohoho.ffmpeg.StreamFilm;
@@ -112,10 +109,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 
 	//2 : liste des film dans la base avec ce dossier : path = pathFilm et serveur_name=serveurName 
 	String collectionName = "films";
-	BasicDBObject query = new BasicDBObject();
-	//query.put("RICO_FICHIER.serveur_name", "NOS-RICO");
-	//query.put("RICO_FICHIER.path", "\\\\NOS-RICO\\video\\Films\\2019\\201904\\");
-
+	Document query = new Document();
 	query.put("RICO_FICHIER.serveur_name", serveurName);
 
 	if (avecSsDossier) {
@@ -123,7 +117,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		// signifie de prendre les sous doosier aussi
 		//Attention les \ pour Windows il faut les doubler
 		pathFilm = pathFilm.replace("\\", "\\\\");
-		query.put("RICO_FICHIER.path", new BasicDBObject("$regex", pathFilm));
+		query.put("RICO_FICHIER.path", new Document("$regex", pathFilm));
 	} else
 		query.put("RICO_FICHIER.path", pathFilm);
 
@@ -141,7 +135,11 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		for (Document doc : docQuiMAtch) {
 			int doc_id = doc.getInteger("id");
 			String film_title = doc.getString("title");
-			BsonDocument bsonDocument = doc.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
+			//20251019 ERic : nouvelle version avec nouvelle verion driver MongoDb
+			//BsonDocument bsonDocument = doc.toBsonDocument(BsonDocument.class, MongoClient.getDefaultCodecRegistry());
+			CodecRegistry codecRegistry = mongoManager.database.getCodecRegistry();
+			BsonDocument bsonDocument = doc.toBsonDocument(BsonDocument.class,codecRegistry);
+			
 			BsonArray rico_fichierArray = bsonDocument.getArray("RICO_FICHIER");
 			List<BsonValue> rico_fichier_list = rico_fichierArray.getValues();
 			logger.info("[" + film_title + "/" + doc_id + "] Nbre de fichier :" + rico_fichierArray.size());
@@ -159,7 +157,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 					logger.info("match:" + mapFichier.get(file));
 					logger.info("Suppresion du fichier du film [" + doc_id + ":" + path + "\\" + file);
 					//Suppression de l'item dans l'aaray RICO_FICHIER
-					BasicDBObject query2 = new BasicDBObject();
+					Document query2 = new Document();
 					query2.put("id", doc_id);
 					String arrayName = "RICO_FICHIER";
 
@@ -179,12 +177,16 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 
 			if (nb_suppression == rico_fichier_list.size()) {
 				//===> Suppression du FILM !
-				BasicDBObject query2 = new BasicDBObject();
+				Document query2 = new Document();
 				query2.put("id", doc_id);
 				mongoManager.deleteDB(collectionName, query2);
 				logger.info("Suppresion du film [" + doc_id + "]");
 			}
 		}
+	}
+	//Fermeture de la connexion MongoDB
+	if (mongoManager!=null) {
+		mongoManager.close();
 	}
 }
 	
@@ -306,9 +308,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 									anne_themoviedb=1900;
 								}
 							} catch (java.text.ParseException e) {
-								// TODO Auto-generated catch block
 								e.printStackTrace();
-								logger.warn("ParseException:["+date_themoviedb.toString()+"] excepiton"+e.toString());
 								anne_themoviedb=1900;
 							} catch (Exception e ) {
 								e.printStackTrace();
@@ -378,18 +378,20 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		            if (memoRicoFIlm.equals("BD")) {		            			           
 		            	logger.info("Memorisation dans RicoFIlm direct par cnx BD");
 		            	//Recherche si l'id du film est d�j� pr�sent dans la bd
-		            	BasicDBObject whereQuery = new BasicDBObject();
+		            	Document whereQuery = new Document();
 		     		    whereQuery.put("id", filmRico.id);
-		     		    BasicDBObject fields = new BasicDBObject();
+		     		    Document fields = new Document();
 		     		    fields.put("id", 1);
 		     		    logger.info("On recherche si le film id=["+filmRico.id+"] existe dans la base ? ");
+
+
 		     		    int i_nb_matchBD= mongoManager.selectDB("films", whereQuery, fields);
 		     		    if(i_nb_matchBD==0) {
 		     		    	logger.info("2.4]==========================Insertion DB==========================");
-		     		    	DBObject _DBObject= getFilmTheMovieDbDetail(filmRico.id);
+		     		    	Document _DBObject= getFilmTheMovieDbDetail(filmRico.id);
+							//20241019 ERic : nouvelle version avec nouvelle verion driver MongoDb
+							//Document doc = new Document(_DBObject.toMap());
 		     		    	mongoManager.insertJSON("films",_DBObject);
-		     		    	
-
 
 		     				//==Ajout partie Fichier
 		     				String arrayName  = "RICO_FICHIER";
@@ -432,12 +434,12 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 */			     			
 		     				//20101205
 		     				//Ajout d'une date d'ajout dans la base
-		     				BasicDBObject query = new BasicDBObject();
+		     				Document query = new Document();
 		     		    	query.put("id", filmRico.id);
-							BasicDBObject newDocumentBO = new BasicDBObject();
+							Document newDocumentBO = new Document();
 							newDocumentBO.put("UPDATE_DB_DATE", new Date());
 			     			//newDocument.put("UPDATE_DB_DATE", listeFichier.get(i).dateFile);
-			     			BasicDBObject updateObj = new BasicDBObject();
+			     			Document updateObj = new Document();
 			     			updateObj.put("$set", newDocumentBO);
 			     			mongoManager.updateDB("films",query,updateObj);
 		     				
@@ -456,7 +458,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		     				
 		     		    	arrayItemFiltered= mongoManager.arrayListITemFind("films", filter,arrayName,filtreArrayParam,filtreArrayValue);
 		     		    	//System.out.println("lliste filtre find "+arrayItemFiltered.size());
-		     		    	//Si size =0 ==> insertion FILM existant , mais fichier diff�rent 
+		     		    	//Si size =0 ==> insertion FILM existant , mais fichier différent 
 		     		    	if (arrayItemFiltered.size()==0) {
 		     		    		logger.info("FILM existant , mais path / fichier diff�rent ==> Insertion nouveau Fihcier");
 		     		    		//==Ajout partie Fichier
@@ -505,7 +507,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 									//1 - Suppression du Rico_FILM qui match
 										logger.info("Suppresion du fichier du film ["+filmRico.id+":"+pathFilm + "\\"+nomFichier);
 										//Suppression de l'item dans l'aaray RICO_FICHIER
-										BasicDBObject query2 = new BasicDBObject();
+										Document query2 = new Document();
 										query2.put("id",filmRico.id);
 										//EF 2020/08/02 : on supprime l'item RICOFICHIER sur ces 2 attributs file et path (et pas juste le FIchier)
 										ArrayList<String> filtreArrayParamX = new ArrayList<String>(Arrays.asList("path","file"));
@@ -572,6 +574,13 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 				 retourParse[4] =retourParse[4] + retourSsDossier[4];
 			 }
 		 }
+
+		 //Fermeture de la connexion MongoDB
+		 if (mongoManager!=null) {
+			mongoManager.close();
+		}
+
+		 logger.info( "traiteDossierFilm : fin");
 		 return retourParse;
 	}
 	
@@ -774,7 +783,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 			//System.out.println(jsonObject);
 			
 			long total_results = (Long) jsonObject.get("total_results");
-			//System.out.println("total_results="+total_results);
+			System.out.println("total_results="+total_results);
 			
 			// loop array
             JSONArray films = (JSONArray) jsonObject.get("results");
@@ -883,7 +892,7 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 	/*
 	 * Recherche du Json du detail d'un film
 	 */
-	 public DBObject getFilmTheMovieDbDetail(long  filmId ) {
+	 public Document getFilmTheMovieDbDetail(long  filmId ) {
 		Logger logger = LoggerFactory.getLogger(TheMovieDb.class);
 		logger.debug( "getFilmTheMovieDbDetail : debut"); 
 		//String sURL="https://api.themoviedb.org/3/movie/603?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&append_to_response=credits,videos"
@@ -891,12 +900,14 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		logger.debug("sURL="+sURL);
 		String sReturn= UrlManager.getUrl( sURL);
 		logger.debug("sReturn="+sReturn);
-		DBObject obj=null;
+		Document obj=null;
 			
 		try {
-			
+			/* 
 			sReturn = new String( sReturn);
 			obj = (DBObject) JSON.parse(sReturn);
+			*/
+			obj = Document.parse(sReturn);
 						
 			
 			//System.out.println("testObjetJSONJSONObject=");
@@ -968,5 +979,13 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 		
 		
 	}
+
+/*
+public void closeMongoClient() {
+	// TODO Auto-generated method stub
+	this.mongoClient.close();
+	throw new UnsupportedOperationException("Unimplemented method 'closeMongoClient'");
+}
+	*/
 	
 }

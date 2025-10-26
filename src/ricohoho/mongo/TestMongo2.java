@@ -1,7 +1,9 @@
 package ricohoho.mongo; 
 
-import com.mongodb.MongoClient;
+
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.MongoClient;
+import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 
 import org.bson.Document;
@@ -15,7 +17,18 @@ public class TestMongo2 {
 	
   public static void main(String[] args)
   {
-    MongoClient mongoClient = new MongoClient();
+    String dbMongoHost="davic.mkdh.fr";
+    String dbMongoPort="27017";
+    String dbMongoName="ricofilm";   
+    String userPassword="rineka5993"; 
+
+
+    String uriDbCnx = "mongodb://" + userPassword + dbMongoHost + ":" + dbMongoPort + "/" + dbMongoName;
+    System.out.println("uriDbCnx = " + uriDbCnx);
+    MongoClient mongoClient = MongoClients.create(uriDbCnx);
+
+
+    
     MongoDatabase database = mongoClient.getDatabase("pushExampleDb");
     MongoCollection<Document> collection = database.getCollection("pushExampleCollection");
 

@@ -6,3 +6,4 @@ ffmpeg.exe
 ffprobe.exe
 *.jar
 .gitignore
+dir-films/*
