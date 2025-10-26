@@ -7,3 +7,4 @@ ffprobe.exe
 *.jar
 .gitignore
 dir-films/*
+init.properties

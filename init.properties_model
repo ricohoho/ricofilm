@@ -1,0 +1,36 @@
+#======== ACTION POSIBLE =========
+ACTION1=DOWNLOAD_IMAGE
+ACTION2=AJOUT_FILM
+ACTION3=SUPPRIME_FILM
+ACTION4=REQUEST_FILM
+#========= SFTP ============
+CENTRAL_SFTP_HOST=davic.mkdh.fr
+CENTRAL_SFTP_PORT=4322
+CENTRAL_SFTP_USER=ricohoho
+CENTRAL_SFTP_SFTP_PASS=xxxxxxxx
+CENTRAL_SFTP_WORKINGDIR=/home/ricohoho/test
+#======== HTTP RESQUEST=============
+REQUEST_HTTP_HOST=localhost 
+REQUEST_HTTP_PORT=3000
+REQUEST_STATUS=AFAIRE
+#======= Nom du serveur indiqu� en BD des fichier film accessible (conf1)
+--SERVEUR_NAME=NOS-RICO
+--PATH_FILM=C:\\tempo\\nos-rico-test\\
+--PATH_FILM_NIV_SSDOSSIER=1
+--PATH_FILM_NON_TRAITE=hoho,hihi
+#======= Nom du serveur indiqu� en BD des fichier film accessible (conf2)
+SERVEUR_NAME=POR80090940
+PATH_FILM=/home/efassel/ricofilm/ricofilm/dir-films/
+PATH_FILM_NIV_SSDOSSIER=1
+#======= Mogodob ================
+MONGODB_HOST=localhost
+MONGODB_PORT=27017
+MONGODB_NAME=ricofilm
+MONGODB_USER=ricohoho
+MONGODB_PWD=xxxxx
+-- version distante
+--MONGODB_HOST=davic.mkdh.fr
+--MONGODB_PORT=27017
+--MONGODB_NAME=ricofilm
+--MONGODB_USER=ricoAdmin
+--MONGODB_PWD=xxxxxxx
