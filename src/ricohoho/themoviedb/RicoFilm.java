@@ -64,7 +64,14 @@ public class RicoFilm {
 				pathFilm=args[1];
 			}
 		} else {
-			action ="?";//""AJOUT_FILM";
+            // Tentative de lecture via variable d'environnement (chargee dans prop par ReadPropertiesFile)
+            String envAction = prop.getProperty("ACTION");
+            if (envAction != null && !envAction.isEmpty()) {
+                action = envAction;
+                logger.info("Action recuperee via variable d'environnement : " + action);
+            } else {
+			    action ="?";//""AJOUT_FILM";
+            }
 		}
 		logger.info("action :["+action +"]");
 		
@@ -83,6 +90,7 @@ public class RicoFilm {
 		if (pathFilm.equals("DEFAUT_PATH")) 
 			pathFilm = 	prop.getProperty("PATH_FILM");			
 		path_FILM_NIV_SSDOSSIER =Integer.parseInt( prop.getProperty("PATH_FILM_NIV_SSDOSSIER"));
+		String serveurScheme=prop.getProperty("REQUEST_HTTP_SCHEME");
 		String serveurHost=prop.getProperty("REQUEST_HTTP_HOST");							//"localhost";
 		String serveurPort=prop.getProperty("REQUEST_HTTP_PORT");							//"3000";
 		
@@ -137,11 +145,11 @@ public class RicoFilm {
 			//1 : Appel des RESQUEST en cours pour le serveur concerne (dans laquel sont present les video)			
 			String p_status=prop.getProperty("REQUEST_STATUS_AFAIRE");									//"AFAIRE";
 			String p_serveur_name=prop.getProperty("SERVEUR_NAME");								//"NOS-RICO";						 
-			List<Request>  requestList = RequestManager.getRequestFilm( serveurHost, serveurPort, p_status, p_serveur_name ) ;			
+			List<Request>  requestList = RequestManager.getRequestFilm( serveurScheme, serveurHost, serveurPort, p_status, p_serveur_name ) ;			
 			//2 : Envoi des fichiers sur le serveru davic (en SFTP)
 			String p_status_fait=prop.getProperty("REQUEST_STATUS_FAIT");									//"AFAIRE";
-			RequestManager.traitement( serveurHost, serveurPort, p_status_fait,requestList);
-		} else {
+			RequestManager.traitement(serveurScheme,serveurHost, serveurPort, p_status_fait,requestList);
+		} else {   
 			if (action.equals("?")) {
 				logger.info("Il manque le parametre action obligatoire :-( ");
 			} else {

@@ -1,0 +1,106 @@
+name: Batch CI/CD runner
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action à exécuter'
+        required: true
+        default: 'AJOUT_FILM'
+        type: choice
+        options:
+          - AJOUT_FILM
+          - AJOUT_FILM_SANS_IMAGE
+          - DOWNLOAD_IMAGE
+          - SUPPRIME_FILM
+          - MAJ_FILM
+          - REQUEST_FILM
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    environment: ricofilm
+    
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/ricohoho/ricofilm-batch:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          # Determine ACTION provided by input or default
+          ACTION_TO_RUN: ${{ github.event.inputs.action || 'AJOUT_FILM' }}
+          # Map GitHub Secrets/Vars to Environment Variables for the container
+          MONGODB_HOST: ${{ vars.DB_HOST }}
+          MONGODB_PORT: ${{ vars.DB_PORT }}
+          MONGODB_NAME: ${{ vars.DB_NAME }}
+          MONGODB_USER: ${{ vars.DB_USER }}
+          MONGODB_PWD: ${{ secrets.DB_PASSWORD }}
+          SERVEUR_NAME: ${{ vars.SERVEUR_NAME }}
+          
+        with:
+          host: ${{ vars.SERVER_IP }}
+          username: ${{ vars.SERVER_USER }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
+          # Pass these environment variables to the SSH session
+          envs: GHCR_TOKEN,GHCR_USER,ACTION_TO_RUN,MONGODB_HOST,MONGODB_PORT,MONGODB_NAME,MONGODB_USER,MONGODB_PWD,SERVEUR_NAME
+          script: |
+            echo "Login to GHCR..."
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u $GHCR_USER --password-stdin
+            
+            echo "Pulling new image..."
+            docker pull ghcr.io/ricohoho/ricofilm-batch:latest
+            
+            echo "Stopping old container..."
+            docker stop ricofilm-batch || true
+            docker rm ricofilm-batch || true
+            
+            echo "Ensuring network exists..."
+            docker network inspect ricofilm-network >/dev/null 2>&1 || docker network create ricofilm-network
+            
+            echo "Starting new container with action: $ACTION_TO_RUN"
+            # Note: We use the Environment Variables passed via 'envs'
+            # To map a volume for films on the host, add: -v /path/to/host/films:/app/dir-films
+            docker run -d \
+              --name ricofilm-batch \
+              --network ricofilm-network \
+              -v /home/streaming/films/test:/app/dir-films \
+              -e PATH_FILM="dir-films/" \
+              -e PATH_FILM_NIV_SSDOSSIER="1" \
+              -e MONGODB_HOST="$MONGODB_HOST" \
+              -e MONGODB_PORT="$MONGODB_PORT" \
+              -e MONGODB_NAME="$MONGODB_NAME" \
+              -e MONGODB_USER="$MONGODB_USER" \
+              -e MONGODB_PWD="$MONGODB_PWD" \
+              -e SERVEUR_NAME="$SERVEUR_NAME" \
+              -e ACTION="$ACTION_TO_RUN" \
+              ghcr.io/ricohoho/ricofilm-batch:latest "$ACTION_TO_RUN"

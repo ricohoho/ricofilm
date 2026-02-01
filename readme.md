@@ -32,7 +32,7 @@ Installation de Mvn
 # fichier de configuraiton 
 `init.properties`
 
-renommer init.properties_model et ajuster les valeurs
+renommer init.properties_model et ajuster les valeurs.
 
 > #======== ACTION POSIBLE =========
 > 
@@ -96,10 +96,10 @@ RicoFilm2-0.0.1-SNAPSHOT-jar-with-dependencies.jar
 
 **execution de l'application : (avec le jar jar)**
 
-` java -jar Ricofilm action path`
+` java action path`
 
 **LEs paramètres :** 
-patch : /home/efassel/ricofilm/ricofilm/dir-films/
+path : /home/efassel/ricofilm/ricofilm/dir-films/
 action : 
 Les parametres d'action possibles sont :
 **DOWNLOAD_IMAGE**  => provoque le teechargment de l'image des fichier film dans le dossier :/home/efassel/ricofilm/ricofilm/dir-films/

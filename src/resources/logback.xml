@@ -54,9 +54,10 @@
         <appender-ref ref="CONSOLE"/>
     </logger> 
  
-    <root level="debug">
+    <root level="INFO">
     <!-- 
         <appender-ref ref="CONSOLE"/>
+        //INFO par DEBUG, WARN, ERROR, TRACE
      -->
         <appender-ref ref="FILE-ROLLING"/>
     </root>

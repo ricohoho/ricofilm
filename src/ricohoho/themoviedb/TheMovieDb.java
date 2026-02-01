@@ -895,7 +895,6 @@ void traiterDossierSupprimeFilmDBFichierAbsent(String serveurName, String pathFi
 	 public Document getFilmTheMovieDbDetail(long  filmId ) {
 		Logger logger = LoggerFactory.getLogger(TheMovieDb.class);
 		logger.debug( "getFilmTheMovieDbDetail : debut"); 
-		//String sURL="https://api.themoviedb.org/3/movie/603?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&append_to_response=credits,videos"
 		String sURL = "https://api.themoviedb.org/3/movie/"+filmId+"?api_key=bd5b73151b4a5a2ac5b34aca8bfe555a&language=fr-FR&append_to_response=credits,videos";
 		logger.debug("sURL="+sURL);
 		String sReturn= UrlManager.getUrl( sURL);

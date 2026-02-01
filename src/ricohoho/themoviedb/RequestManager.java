@@ -35,15 +35,16 @@ public class RequestManager {
 		}
 		
 		//1 : Appel des RESQUEST en cours pour le serveur concerne (dans laquel sont present les video)
+		String request_http_scheme=prop.getProperty("REQUEST_HTTP_SCHEME");					//"http";
 		String serveurHost=prop.getProperty("REQUEST_HTTP_HOST");							//"localhost";
 		String serveurPort=prop.getProperty("REQUEST_HTTP_PORT");							//"3000";
 		String p_status=prop.getProperty("REQUEST_STATUS_AFAIRE");									//"AFAIRE";
 		String p_status_fait=prop.getProperty("REQUEST_STATUS_FAIT");									//"AFAIRE";
 		String p_serveur_name=prop.getProperty("SERVEUR_NAME");								//"NOS-RICO";
-		List<Request>  requestList = getRequestFilm( serveurHost, serveurPort, p_status, p_serveur_name ) ;
+		List<Request>  requestList = getRequestFilm( request_http_scheme,serveurHost, serveurPort, p_status, p_serveur_name ) ;
 		
 		//2 : Envoi des fichiers sur le serveru davic (en SFTP)
-		traitement(serveurHost,serveurPort,p_status_fait,requestList);		
+		traitement(request_http_scheme,serveurHost,serveurPort,p_status_fait,requestList);		
 
 	}
 
@@ -56,7 +57,7 @@ public class RequestManager {
 	 * @param p_serveur_name
 	 * @return
 	 */
-	static List<Request> getRequestFilm(String serveurHost,String serveurPort,String p_status,String p_serveur_name ) {
+	static List<Request> getRequestFilm(String request_http_scheme,String serveurHost,String serveurPort,String p_status,String p_serveur_name ) {
 
 		
 		Logger logger = LoggerFactory.getLogger(RequestManager.class);
@@ -64,7 +65,7 @@ public class RequestManager {
 		Request request = null;
 		List<Request> requestList= new ArrayList<Request>();
 
-		String sURL = "http://"+serveurHost+":"+serveurPort+"/request/list?status="+p_status+"&serveur_name="+p_serveur_name;
+		String sURL = request_http_scheme+"://"+serveurHost+":"+serveurPort+"/request/list?status="+p_status+"&serveur_name="+p_serveur_name;
 		logger.info("retour sURL :"+sURL);
 		
 		String sReturn= UrlManager.getUrl( sURL);
@@ -147,7 +148,7 @@ public class RequestManager {
 	 * Execution des tratements en fct des requet en cours :STATUS = AFAIRE
 	 * @param listRequest
 	 */
-	static void traitement(String serveurHost,String serveurPort,String p_status,List<Request> listRequest) {
+	static void traitement(String request_http_scheme,String serveurHost,String serveurPort,String p_status,List<Request> listRequest) {
 		Logger logger = LoggerFactory.getLogger(RequestManager.class);
 		logger.debug( "traitement : debut"); 
 		Properties prop=new Properties();
@@ -185,9 +186,11 @@ public class RequestManager {
 	    	
 				//2) Update REQUEST.status='FAIT'
 	    		logger.info("Mise a jour du status");
-	    		String url = "http://"+serveurHost+":"+serveurPort+"/request/edit";
-		    	//String url="http://localhost:3000/request/edit";
+	    		String url = request_http_scheme+"://"+serveurHost+":"+serveurPort+"/request/edit";
+		    	logger.info("url de MAJ :"+url);
+				//String url="http://localhost:3000/request/edit";
 		    	request.setStatus(p_status);
+				logger.info("p_status :"+p_status);
 		    	UrlManager.sendJson( url,request.getJson());
 		    	} catch (Exception ex ) {
 		    		logger.error("Excepiotn tratement fichier :"+ex);

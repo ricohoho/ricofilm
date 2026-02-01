@@ -20,18 +20,26 @@ public class ReadPropertiesFile {
 	  */
 	   public static Properties readPropertiesFile() throws IOException {
 	      FileInputStream fis = null;
-	      Properties prop = null;
+	      Properties prop = new Properties();
 	      try {
 	         fis = new FileInputStream(fileName);
-	         prop = new Properties();
 	         prop.load(fis);
 	      } catch(FileNotFoundException fnfe) {
-	         fnfe.printStackTrace();
+	         System.out.println("Warning: " + fileName + " not found. Using environment variables only.");
 	      } catch(IOException ioe) {
 	         ioe.printStackTrace();
 	      } finally {
-	         fis.close();
+	         if (fis != null) {
+	            fis.close();
+	         }
 	      }
+	      
+	      // Override or add properties from Environment Variables
+	      // This allows Docker/CI to set configuration like MONGODB_HOST, etc.
+	      for (Map.Entry<String, String> entry : System.getenv().entrySet()) {
+	          prop.setProperty(entry.getKey(), entry.getValue());
+	      }
+	      
 	      return prop;
 	   }
 	   
