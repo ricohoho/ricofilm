@@ -34,5 +34,4 @@ EXPOSE 3000
 # Command to run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
 
-# Default action if none provided (can be overridden by CMD or passing args to docker run)
-CMD ["AJOUT_FILM"]
+

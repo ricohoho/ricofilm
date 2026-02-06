@@ -70,7 +70,7 @@ public class RicoFilm {
                 action = envAction;
                 logger.info("Action recuperee via variable d'environnement : " + action);
             } else {
-			    action ="?";//""AJOUT_FILM";
+			    action ="AJOUT_FILM";
             }
 		}
 		logger.info("action :["+action +"]");
