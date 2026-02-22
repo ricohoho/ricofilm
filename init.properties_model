@@ -9,6 +9,8 @@ CENTRAL_SFTP_PORT=4322
 CENTRAL_SFTP_USER=ricohoho
 CENTRAL_SFTP_SFTP_PASS=xxxxxxxx
 CENTRAL_SFTP_WORKINGDIR=/home/ricohoho/test
+CENTRAL_SFTP_CERTIF=O
+CENTRAL_SFTP_CERTIF_FILE=/var/services/homes/ricohoho/.ssh/ricohoho
 #======== HTTP RESQUEST=============
 REQUEST_HTTP_SCHEME=http
 REQUEST_HTTP_HOST=localhost 

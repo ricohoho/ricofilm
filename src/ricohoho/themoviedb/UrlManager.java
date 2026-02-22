@@ -87,7 +87,8 @@ public class UrlManager {
 		    request.addHeader("content-type", "application/json");
 		    request.addHeader("Accept","application/json");
 		    request.setEntity(params);
-		    //HttpResponse response = httpClient.execute(request);
+		    HttpResponse response = httpClient.execute(request);
+		    logger.info("Statut de la réponse de l'API : " + response.getStatusLine());
 		    logger.debug("sendJson : fin");
 		    // handle response here...
 		} catch (Exception ex) {

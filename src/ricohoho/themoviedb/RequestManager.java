@@ -169,9 +169,21 @@ public class RequestManager {
 	    String SFTPUSER =prop.getProperty("CENTRAL_SFTP_USER");						// "ricohoho";
 	    String SFTPPASS = prop.getProperty("CENTRAL_SFTP_SFTP_PASS");				// "serveur$linux";
 	    String SFTPWORKINGDIR =prop.getProperty("CENTRAL_SFTP_WORKINGDIR");			// "/home/ricohoho/test";
+	    
+	    String useCertifStr = prop.getProperty("CENTRAL_SFTP_CERTIF");
+	    String certifPath = prop.getProperty("CENTRAL_SFTP_CERTIF_FILE");
+	    boolean useCertif = "O".equalsIgnoreCase(useCertifStr);
+
 	    String fileName="";
 	    
-		FileTools fileTools = new FileTools(SFTPHOST,SFTPPORT,SFTPUSER,SFTPPASS,SFTPWORKINGDIR);
+		FileTools fileTools;
+		if (useCertif) {
+			logger.info("Utilisation de l'authentification par certificat : " + certifPath);
+			fileTools = new FileTools(SFTPHOST,SFTPPORT,SFTPUSER,SFTPWORKINGDIR,certifPath,true);
+		} else {
+			logger.info("Utilisation de l'authentification par mot de passe.");
+			fileTools = new FileTools(SFTPHOST,SFTPPORT,SFTPUSER,SFTPPASS,SFTPWORKINGDIR);
+		}
 		
 	    for (Request request : listRequest) {		    	
 	    	fileName=request.getPath()+request.getFile();

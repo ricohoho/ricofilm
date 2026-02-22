@@ -86,9 +86,9 @@
         <version>4.11.1</version>
     </dependency>
       <dependency>
-        <groupId>com.jcraft</groupId>
+        <groupId>com.github.mwiede</groupId>
         <artifactId>jsch</artifactId>
-        <version>0.1.55</version>
+        <version>0.2.16</version>
     </dependency>
     <dependency>
         <groupId>org.apache.httpcomponents</groupId>
@@ -107,6 +107,12 @@
           <version>2022.06.03</version>
       </dependency>
 
+      <!-- Required by JSch for Ed25519 (ssh-ed25519) keys authentication -->
+      <dependency>
+          <groupId>org.bouncycastle</groupId>
+          <artifactId>bcprov-jdk15on</artifactId>
+          <version>1.70</version>
+      </dependency>
 
   </dependencies>
 

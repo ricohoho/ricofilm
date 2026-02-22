@@ -20,7 +20,19 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.slf4j.LoggerFactory;
+
 public class FileTools {
+	
+	static {
+		JSch.setLogger(new com.jcraft.jsch.Logger() {
+			public boolean isEnabled(int level) {
+				return true;
+			}
+			public void log(int level, String message) {
+				LoggerFactory.getLogger(FileTools.class).info("JSCH-LOG: " + message);
+			}
+		});
+	}
 
 	//https://stackoverflow.com/questions/2405885/run-a-command-over-ssh-with-jsch
 	
@@ -29,6 +41,7 @@ public class FileTools {
     String SFTPUSER = "username";
     String SFTPPASS = "password";
     String SFTPWORKINGDIR = "file/to/transfer";
+    String CERTIFICATE_PATH = null;
     
     org.slf4j.Logger logger = null;
     
@@ -47,6 +60,23 @@ public class FileTools {
     	SFTPUSER =_SFTPUSER ;
     	SFTPPASS = _SFTPPASS ;
     	SFTPWORKINGDIR = _SFTPWORKINGDIR; 
+    }
+
+    public FileTools(String _SFTPHOST, int _SFTPPORT ,String _SFTPUSER ,String _SFTPWORKINGDIR, String _CERTIFICATE_PATH, boolean isCertif ) {
+    	logger = LoggerFactory.getLogger(FileTools.class);	
+			
+    	SFTPHOST = _SFTPHOST;
+    	SFTPPORT =_SFTPPORT;
+    	SFTPUSER =_SFTPUSER ;
+    	SFTPWORKINGDIR = _SFTPWORKINGDIR; 
+    	if (isCertif) {
+    	    CERTIFICATE_PATH = _CERTIFICATE_PATH;
+    	}
+		logger.info("FileTools SFTPHOST="+SFTPHOST);	
+		logger.info("FileTools SFTPPORT="+SFTPPORT);	
+		logger.info("FileTools SFTPUSER="+SFTPUSER);	
+		logger.info("FileTools SFTPWORKINGDIR="+SFTPWORKINGDIR);	
+		logger.info("FileTools CERTIFICATE_PATH="+CERTIFICATE_PATH);	
     }
     
 	/**
@@ -130,8 +160,18 @@ public class FileTools {
 
 	    try {
 	        JSch jsch = new JSch();
+	        if (CERTIFICATE_PATH != null && !CERTIFICATE_PATH.isEmpty()) {
+				logger.info("---- CERTIFICATE_PATH : "+CERTIFICATE_PATH);
+	            jsch.addIdentity(CERTIFICATE_PATH);
+	        }
+			logger.info("---- SFTPUSER : "+SFTPUSER);
+			logger.info("---- SFTPHOST : "+SFTPHOST);
+			logger.info("---- SFTPPORT : "+SFTPPORT);	
 	        session = jsch.getSession(SFTPUSER, SFTPHOST, SFTPPORT);
-	        session.setPassword(SFTPPASS);
+	        if (CERTIFICATE_PATH == null || CERTIFICATE_PATH.isEmpty()) {
+				logger.info("---- CERTIFICATE_PATH est null");
+	            session.setPassword(SFTPPASS);
+	        }
 	        java.util.Properties config = new java.util.Properties();
 	        config.put("StrictHostKeyChecking", "no");
 	        session.setConfig(config);
@@ -145,18 +185,51 @@ public class FileTools {
 			logger.info("sftp channel cd : "+SFTPWORKINGDIR);
 	        File f = new File(fileName);
 			logger.info("sftp channel new File file : "+fileName);
-	        channelSftp.put(new FileInputStream(f), f.getName());
+			
+			// Verification si le fichier existe et a la bonne taille
+			boolean needUpload = true;
+			try {
+			    SftpATTRS attrs = channelSftp.lstat(f.getName());
+			    if (attrs != null) {
+			        long remoteSize = attrs.getSize();
+			        long localSize = f.length();
+			        if (remoteSize == localSize) {
+			            logger.info("====> Le fichier " + f.getName() + " existe deja sur le serveur avec la meme taille (" + localSize + " octets). Ignoré !");
+			            needUpload = false;
+			        } else {
+			             logger.info("Le fichier existe mais de taille differente (local: " + localSize + ", distant: " + remoteSize + "). Remplacement.");
+			        }
+			    }
+			} catch (SftpException e) {
+			    if (e.id == ChannelSftp.SSH_FX_NO_SUCH_FILE) {
+			        logger.info("Le fichier n'existe pas encore sur le serveur.");
+			    } else {
+			        logger.warn("Impossible de verifier la taille du fichier distant : " + e.getMessage());
+			    }
+			}
+			
+			if (needUpload) {
+			    channelSftp.put(new FileInputStream(f), f.getName());
+			    logger.info("---- sftp transfert effectue");
+			}
+			
 	        logger.info("---- sftp  Fin");
 	    } catch (Exception ex) {
 	    	logger.error("Exception found while tranfer the response."+ex);
 	        throw ex;
 	    } finally {
-	        channelSftp.exit();
-	        logger.debug("sftp Channel exited.");
-	        channel.disconnect();
-	        logger.debug("Channel disconnected.");
-	        session.disconnect();
-	        logger.debug("Host Session disconnected.");
+	        if (channelSftp != null) {
+	            channelSftp.exit();
+	            logger.debug("sftp Channel exited.");
+	        }
+	        if (channel != null) {
+	            channel.disconnect();
+	            logger.debug("Channel disconnected.");
+	        }
+	        if (session != null) {
+	            session.disconnect();
+	            logger.debug("Host Session disconnected.");
+	        }
 	    }
 	}   
 	
@@ -178,9 +251,15 @@ public class FileTools {
 
 	    try {
 	        JSch jsch = new JSch();
+	        if (CERTIFICATE_PATH != null && !CERTIFICATE_PATH.isEmpty()) {
+	            jsch.addIdentity(CERTIFICATE_PATH);
+	        }
 	        session = jsch.getSession(SFTPUSER, SFTPHOST, SFTPPORT);
-	        session.setPassword(SFTPPASS);
+	        if (CERTIFICATE_PATH == null || CERTIFICATE_PATH.isEmpty()) {
+	            session.setPassword(SFTPPASS);
+	        }
 	        java.util.Properties config = new java.util.Properties();
+			logger.info("---- StrictHostKeyChecking : "+config.getProperty("StrictHostKeyChecking"));
 	        config.put("StrictHostKeyChecking", "no");
 	        session.setConfig(config);
 	        session.connect();
@@ -223,12 +302,16 @@ public class FileTools {
 	        logger.error("Exception found while tranfer the response."+ex);
 	        throw ex;
 	    } finally {
-	        //channelSftp.exit();
+	        //if (channelSftp != null) channelSftp.exit();
 	        logger.debug("sftp Channel exited.");
-	        channel.disconnect();
-	        logger.debug("Channel disconnected.");
-	        session.disconnect();
-	        logger.debug("Host Session disconnected.");
+	        if (channel != null) {
+	            channel.disconnect();
+	            logger.debug("Channel disconnected.");
+	        }
+	        if (session != null) {
+	            session.disconnect();
+	            logger.debug("Host Session disconnected.");
+	        }
 	    }
 	}   
 	
